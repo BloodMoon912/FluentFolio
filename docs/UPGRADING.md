@@ -86,6 +86,8 @@ The recommended setup keeps code, identity and media in two repositories:
   src/content/<collection>/ published articles
   ```
 
+The overlay may also include `i18n/ui.json` — every visible string — so even the prose can live in the private repository.
+
 During CI and local development, `npm run fetch:content` clones that repository
 and copies the overlay over the theme defaults before Astro builds:
 
