@@ -1,4 +1,5 @@
 ---
+import { siteConfig } from '../site.config';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { t as tr } from '../lib/i18n';
 import { SITE, runtimeSince } from '../lib/site';
@@ -102,7 +103,7 @@ const info = [
           <div class="about-games">
             {games.map((game) => (
               <a class="about-game" href={game.url} target="_blank" rel="noopener noreferrer">
-                <span>{game.name}</span>
+                <span>{game.key ? tr('zh', game.key) : game.name}</span>
                 <FluentIcon name="arrow-up-right" size={16} class="about-game-arrow" />
               </a>
             ))}
@@ -147,7 +148,7 @@ const info = [
           <div class="about-row">
             <span data-i18n="contact_email">{tr('zh', 'contact_email')}</span>
             <strong>
-              <a href="mailto:contact@example.com">contact@example.com</a>
+              <a href={`mailto:${siteConfig.contactEmail}`}>{siteConfig.contactEmail}</a>
             </strong>
           </div>
         </div>

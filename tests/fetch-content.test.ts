@@ -168,6 +168,32 @@ describe('fetchContent', () => {
     assert.equal(existsSync(join(root, 'src/content/blog/hello.md')), true);
   });
 
+  it('--from applies the private overlay (identity config and brand media)', () => {
+    const repo = makeContentRepo();
+    write(repo, 'site.config.json', '{"title":"Private Site"}');
+    write(repo, 'assets/brand/logo.svg', '<svg/>');
+    write(repo, 'assets/brand/icons/icon-192.png', 'png');
+    write(repo, 'assets/background.webp', 'webp');
+    const root = makeProject();
+    write(root, 'site.config.json', '{"title":"Theme Default"}');
+
+    fetchContent({ root, env: {}, from: repo });
+
+    assert.equal(readFileSync(join(root, 'site.config.json'), 'utf8'), '{"title":"Private Site"}');
+    assert.equal(existsSync(join(root, 'public/brand/logo.svg')), true);
+    assert.equal(existsSync(join(root, 'public/brand/icons/icon-192.png')), true);
+    assert.equal(existsSync(join(root, 'src/assets/background.webp')), true);
+  });
+
+  it('--from keeps theme defaults when the content repository has no overlay', () => {
+    const repo = makeContentRepo();
+    const root = makeProject();
+    write(root, 'site.config.json', '{"title":"Theme Default"}');
+
+    fetchContent({ root, env: {}, from: repo });
+
+    assert.equal(readFileSync(join(root, 'site.config.json'), 'utf8'), '{"title":"Theme Default"}');
+  });
   it('--from rejects a path that is not a content repository', () => {
     const root = makeProject();
     assert.throws(() => fetchContent({ root, env: {}, from: tempDir('bm-empty-') }), /does not exist/);

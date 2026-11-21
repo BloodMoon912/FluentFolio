@@ -1,0 +1,78 @@
+{
+  "title": "FluentFolio · Personal Space",
+  "titleSuffix": "FluentFolio",
+  "url": "https://www.example.com",
+  "authorName": "Your Name",
+  "adminName": "FluentFolio",
+  "discordName": "FluentFolio",
+  "webauthnSalt": "fluentfolio",
+  "cmsSlug": "fluentfolio",
+  "contactEmail": "contact@example.com",
+  "alternateNames": ["FluentFolio", "你的名字", "Your Name"],
+  "licenseNotice": {
+    "zh": "© 你的名字 版權所有，轉載請註明出處",
+    "en": "© Your Name. All rights reserved. Please credit the source when quoting."
+  },
+  "feeds": {
+    "blog": {
+      "title": "FluentFolio Blog",
+      "description": "FluentFolio 的開發、設計與實驗筆記。"
+    },
+    "novel": {
+      "title": "FluentFolio Novel",
+      "description": "FluentFolio 的連載小說。"
+    }
+  },
+  "nav": [
+    { "href": "/", "key": "brand_home", "exact": true },
+    { "href": "/posts", "key": "brand_posts", "exact": false },
+    { "href": "/dictionary", "key": "brand_dictionary", "exact": false },
+    { "href": "/world", "key": "brand_world", "exact": false },
+    { "href": "/status", "key": "brand_status", "exact": true },
+    { "href": "/about", "key": "brand_about", "exact": true }
+  ],
+  "profile": {
+    "name": "Your Name",
+    "nameZh": "你的名字",
+    "nameEn": "Your Name",
+    "nameShort": "FluentFolio",
+    "handle": "@yourname",
+    "tagline": "Developer · Writer · Gamer",
+    "bio": "記錄開發、創作與正在進行的實驗。"
+  },
+  "services": [
+    { "key": "website", "id": "service_website", "descId": "service_website_desc" },
+    { "key": "database", "id": "service_database", "descId": "service_database_desc" },
+    { "key": "activity", "id": "service_activity", "descId": "service_activity_desc" },
+    { "key": "steam", "id": "service_steam", "descId": "service_steam_desc" }
+  ],
+  "socials": [
+    { "name": "GitHub", "icon": "github", "url": "https://github.com/your-name" },
+    { "name": "Discord", "icon": "discord", "url": "https://discord.com/users/000000000000000000" },
+    { "name": "Steam", "icon": "steam", "url": "https://steamcommunity.com/id/yourname" }
+  ],
+  "supportLinks": [],
+  "about": {
+    "setup": [
+      { "key": "setup_cpu", "value": "Your CPU" },
+      { "key": "setup_gpu", "value": "Your GPU" },
+      { "key": "setup_memory", "value": "Your memory" },
+      { "key": "setup_storage", "value": "Your storage" },
+      { "key": "setup_display", "value": "Your display" },
+      { "key": "setup_peripherals", "value": "Your keyboard · mouse · headset" }
+    ],
+    "games": [{ "name": "Minecraft", "url": "https://minecraft.wiki/" }]
+  },
+  "terminology": {
+    "worldName": "你的世界",
+    "conlangName": "你的語言"
+  },
+  "branding": {
+    "logo": "/brand/logo.svg",
+    "favicon": "/brand/favicon.svg",
+    "appleTouchIcon": "/brand/icons/icon-192.png",
+    "backgroundVideoWebm": "/brand/background.webm",
+    "backgroundVideoMp4": "/brand/background.mp4",
+    "easterAudio": "/brand/easter.mp3"
+  }
+}

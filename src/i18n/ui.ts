@@ -650,7 +650,7 @@ const I18N: Record<Lang, Dict> = {
       'This Privacy Policy may be reviewed and revised from time to time to reflect changes in website functions, data handling, third-party services or applicable law. Revised versions will be published on this page and will take effect from the effective date stated on the page.',
     privacy_contact_title: 'Enquiries and contact',
     privacy_contact_body:
-      "For enquiries about this Privacy Policy, personal-data handling, or access and correction requests, email contact@example.com or use another contact method listed on the Website's About page.",
+      "For enquiries about this Privacy Policy, personal-data handling, or access and correction requests, email {0} or use another contact method listed on the Website's About page.",
     terms_intro:
       'These Terms of Use apply to My Personal Space (the “Website”). By browsing, accessing or using the Website, you agree to comply with these Terms and the laws of Hong Kong applicable to the Website.',
     terms_use_title: 'Use of the Website',
@@ -695,7 +695,7 @@ const I18N: Record<Lang, Dict> = {
       'These Terms are governed by and construed in accordance with the laws of the Hong Kong Special Administrative Region. To the extent permitted by law, any dispute arising from or in connection with these Terms or the Website is subject to the non-exclusive jurisdiction of the courts of the Hong Kong Special Administrative Region.',
     terms_contact_title: 'Enquiries and contact',
     terms_contact_body:
-      "For enquiries about these Terms, copyright, image use or Website services, email contact@example.com or use another contact method listed on the Website's About page.",
+      "For enquiries about these Terms, copyright, image use or Website services, email {0} or use another contact method listed on the Website's About page.",
 
     not_found_title: 'This page does not exist.',
     not_found_lead: 'The URL may have changed, or this path never existed. You can go home or browse the blog.',

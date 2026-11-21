@@ -9,12 +9,23 @@ touches the first one.
 | Layer       | Files                                                                                                                                                                                                             | Owner                |
 | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------- |
 | **Theme**   | `src/components/**`, `src/layouts/**`, `src/pages/**` (except content pages), `src/styles/**`, `src/scripts/**`, `src/lib/**` (except identity data), `public/scripts/**`, `tests/**`, `scripts/**`, build config | Upstream (this repo) |
-| **Site**    | `src/site.config.ts`, `src/lib/data.ts`, `src/i18n/ui.ts`, `wrangler.jsonc`, `.env*`, `src/pages/about.astro`, `src/pages/terms.astro`, `src/pages/privacy.astro`                                                 | Your site            |
-| **Content** | `src/content/**` (or a private content repository fetched during CI), `public/**` assets, `src/assets/**` images and fonts                                                                                        | Your site            |
+| **Site**    | `site.config.json`, `src/i18n/ui.ts`, `wrangler.jsonc`, `.env*`, `src/pages/{about,terms,privacy}.astro`                                                                                                          | Your site            |
+| **Content** | `src/content/**`, `assets/brand/**`, `assets/background.webp` (normally in a private repository fetched during CI)                                                                                                | Your site            |
 
-The rule of thumb: **if a change is about who you are, put it in the Site layer.**
-If it is about how the site behaves for everyone, it belongs upstream in the
-theme.
+Two rules keep upgrades painless:
+
+1. **Identity is data, not code.** Every site-specific value lives in
+   `site.config.json`: title, URL, author, nav, feeds, licence, social links,
+   About rows, terminology, brand asset paths. `.astro` and `.ts` files stay
+   generic, so a theme update replaces them wholesale.
+2. **Personal media is content, not code.** Logo, favicon, icons, the background
+   video and the Easter egg live under `public/brand/` and are overlaid from the
+   content repository at build time. The code repository only keeps the theme's
+   placeholder files.
+
+The rule of thumb: **if a change is about who you are, it belongs in
+`site.config.json` or the content repository.** If it is about how the site
+behaves for everyone, it belongs upstream in the theme.
 
 ## What makes the merge painless
 
@@ -58,12 +69,35 @@ If a theme-owned file conflicts, that is a signal: either the change should be
 upstreamed to FluentFolio, or it belongs in `src/site.config.ts`. Do not keep a
 long-lived fork of a theme file.
 
-## Sites with a private content repository
+## Sites with a private content repository (the default)
 
-Keep the content checkout out of the theme merge entirely. The reference setup
-fetches a private repository into `src/content/` during CI (see
-`examples/private-content-repo/`), so the code repository never stores articles
-and a theme update cannot touch them.
+The recommended setup keeps code, identity and media in two repositories:
+
+- **Code repository** — this theme plus a generic `site.config.json` and
+  placeholder `public/brand/` files. It is safe to publish and has no personal
+  data.
+- **Content repository (private)** — the published Markdown **and** the private
+  overlay:
+
+  ```
+  site.config.json          the real identity, nav, feeds, licence, contacts
+  assets/brand/*            logo, favicon, icons, background video/audio
+  assets/background.webp    still background for the parallax layer
+  src/content/<collection>/ published articles
+  ```
+
+During CI and local development, `npm run fetch:content` clones that repository
+and copies the overlay over the theme defaults before Astro builds:
+
+```bash
+npm run fetch:content -- --from ../my-content-repo   # local
+npm run fetch:content                                # CI, uses CONTENT_REPO_TOKEN
+```
+
+Because the overlay is applied after checkout, a theme update never conflicts
+with identity or media: the merge only sees theme files, and the private values
+are put back on the next build. Use `CONTENT_REQUIRED=1` in CI so a missing
+token fails the build instead of publishing an empty site.
 
 ## After the merge
 

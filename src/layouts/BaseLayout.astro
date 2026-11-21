@@ -167,8 +167,8 @@ const socialIcons: Record<string, string> = {
     <link rel="alternate" type="application/rss+xml" title={`${profile.nameEn} Novel RSS`} href="/rss-novel.xml" />
     <link rel="alternate" type="application/atom+xml" title={`${profile.nameEn} Blog Atom`} href="/atom.xml" />
     <link rel="alternate" type="application/atom+xml" title={`${profile.nameEn} Novel Atom`} href="/atom-novel.xml" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192.png" />
+    <link rel="icon" type="image/svg+xml" href={siteConfig.branding.favicon} />
+    <link rel="apple-touch-icon" sizes="192x192" href={siteConfig.branding.appleTouchIcon} />
 
     <Seo
       title={pageTitle}
@@ -198,8 +198,8 @@ const socialIcons: Record<string, string> = {
 
     <div class="site-bg" aria-hidden="true">
       <video id="site-bg-video" class="site-bg-media" muted loop playsinline preload="none" poster={bgPoster.src}>
-        <source data-src="/background.webm" type="video/webm" />
-        <source data-src="/background.mp4" type="video/mp4" />
+        <source data-src={siteConfig.branding.backgroundVideoWebm} type="video/webm" />
+        <source data-src={siteConfig.branding.backgroundVideoMp4} type="video/mp4" />
       </video>
       <!-- Optimised, content-hashed WebP from src/assets. No JPEG/PNG fallback
            chain: the build guarantees the file exists, so an <img> error means
@@ -219,13 +219,13 @@ const socialIcons: Record<string, string> = {
       <div class="site-bg-veil"></div>
     </div>
 
-    <audio id="easter-audio" src="/easter.mp3" preload="none"></audio>
+    <audio id="easter-audio" src={siteConfig.branding.easterAudio} preload="none"></audio>
 
     <header class="topbar">
       <div class="topbar-left">
         <a class="brand" href="/">
           <span class="brand-mark" aria-hidden="true">
-            <img src="/logo.svg" alt="" loading="eager" />
+            <img src={siteConfig.branding.logo} alt="" loading="eager" />
           </span>
           <span data-i18n="app_title">{tr('zh', 'app_title')}</span>
         </a>

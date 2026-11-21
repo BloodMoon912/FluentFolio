@@ -4,7 +4,7 @@
 #
 # SCOPE: this file is applied to **static asset** responses only. The
 # `assets.run_worker_first` exclusions in wrangler.jsonc hand `/_astro/*`,
-# `/background.mp4`, `/background.webm` and `/easter.mp3` straight to the asset
+# `/brand/background.mp4`, `/brand/background.webm` and `/brand/easter.mp3` straight to the asset
 # layer; every other path reaches the Worker first, and SSR pages are rendered
 # there. The /admin/* and /api/admin/* rules below never apply to a Worker
 # response — it is not filtered by this file. The security headers for SSR
@@ -72,25 +72,25 @@
 # rename it (e.g. background-v2.mp4) and update the reference in the code —
 # otherwise visitors who already cached the old file under this exact name
 # won't see the new one for up to a year.
-/background.mp4
+/brand/background.mp4
   Cache-Control: public, max-age=31536000, immutable
 
-/background.webm
+/brand/background.webm
   Cache-Control: public, max-age=31536000, immutable
 
 # The still background is imported from src/assets and emitted as a
 # content-hashed file under /_astro/, so it is covered by the immutable rule
 # above and needs no entry of its own here.
-/logo.svg
+/brand/logo.svg
   Cache-Control: public, max-age=31536000, immutable
 
-/favicon.svg
+/brand/favicon.svg
   Cache-Control: public, max-age=31536000, immutable
 
-/icons/*
+/brand/icons/*
   Cache-Control: public, max-age=31536000, immutable
 
-/easter.mp3
+/brand/easter.mp3
   Cache-Control: public, max-age=31536000, immutable
 
 # Prerendered at build time from the four content collections (blog, novel,

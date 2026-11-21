@@ -10,6 +10,15 @@
 //   npm run fetch:content -- --from ../fluentfolio-content
 //                                               mirror a local clone (for `astro dev`)
 //
+// The content repository is also the site's private overlay:
+//
+//   site.config.json          identity, nav, feeds, licence, branding paths
+//   assets/brand/*            logo, favicon, icons, background video/audio
+//   assets/background.webp    still background used by the parallax layer
+//
+// Those are copied over the generic defaults in this repository, so a theme
+// upgrade only ever replaces code, never a site's identity or media.
+//
 // It runs automatically as `prebuild`, so `npm run build` on Cloudflare Workers
 // Builds fetches the content first.
 //
@@ -36,6 +45,8 @@ export const COLLECTIONS = ['blog', 'novel', 'dictionary', 'world'];
 
 const REPO_SLUG = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/;
 const GITHUB_HTTPS_PREFIX = 'https://github.com/';
+const BRAND_TARGET = join('public', 'brand');
+const STILL_BACKGROUND_TARGET = join('src', 'assets', 'background.webp');
 
 /**
  * @typedef {object} ContentConfig
@@ -129,6 +140,43 @@ function total(counts) {
 }
 
 /**
+ * Copy the private overlay (identity config and brand media) from a content
+ * checkout over the generic defaults. Missing pieces are fine: a content repo
+ * that only holds Markdown still works.
+ *
+ * @param {string} sourceRoot
+ * @param {string} root
+ * @param {(message: string) => void} log
+ */
+function applyOverlay(sourceRoot, root, log) {
+  const copied = [];
+
+  const config = join(sourceRoot, 'site.config.json');
+  if (existsSync(config)) {
+    cpSync(config, join(root, 'site.config.json'));
+    copied.push('site.config.json');
+  }
+
+  const brand = join(sourceRoot, 'assets', 'brand');
+  if (existsSync(brand)) {
+    cpSync(brand, join(root, BRAND_TARGET), { recursive: true });
+    copied.push('assets/brand');
+  }
+
+  const still = join(sourceRoot, 'assets', 'background.webp');
+  if (existsSync(still)) {
+    cpSync(still, join(root, STILL_BACKGROUND_TARGET));
+    copied.push('assets/background.webp');
+  }
+
+  log(
+    copied.length > 0
+      ? `fetch-content: applied private overlay (${copied.join(', ')}).`
+      : 'fetch-content: content repository has no private overlay; keeping the theme defaults.',
+  );
+}
+
+/**
  * Replace the four collection directories in `target` with the ones from
  * `source`. Only those four directories are touched, and only they are copied:
  * nothing else in the content repository (workflows, README) can reach src/.
@@ -166,10 +214,12 @@ export function fetchContent({ root, env, from, log = () => {} }) {
   const contentDir = join(root, 'src', 'content');
 
   if (from) {
-    const sourceDir = join(resolve(root, from), 'src', 'content');
+    const sourceRoot = resolve(root, from);
+    const sourceDir = join(sourceRoot, 'src', 'content');
     if (!existsSync(sourceDir)) {
       throw new Error(`--from: "${sourceDir}" does not exist. Point it at a clone of the content repository.`);
     }
+    applyOverlay(sourceRoot, root, log);
     mirrorCollections(sourceDir, contentDir);
     const counts = countAll(contentDir);
     log(`fetch-content: mirrored ${total(counts)} Markdown file(s) from ${from}.`);
@@ -210,6 +260,8 @@ export function fetchContent({ root, env, from, log = () => {} }) {
       const detail = redact(stderr.trim() || (error instanceof Error ? error.message : String(error)), config.token);
       return unavailable(`Cloning ${config.repo}@${config.ref} failed: ${detail}`);
     }
+
+    applyOverlay(checkout, root, log);
 
     const sourceDir = join(checkout, 'src', 'content');
     if (!existsSync(sourceDir)) {
