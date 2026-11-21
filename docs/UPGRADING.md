@@ -71,3 +71,14 @@ and a theme update cannot touch them.
 - Check a post page: TOC numbering, the sliding active marker, reading progress.
 - Check `/status` and `/about` if you use them; these are Site-layer pages and
   may need a small edit when a theme component changes its props.
+
+## Identity values used by generated files
+
+Two more values live in `src/site.config.ts` precisely because generated output
+must not hardcode a site:
+
+- `url` — absolute origin, no trailing slash. `src/pages/robots.txt.ts` passes
+  it to `buildRobotsTxt()`, so the sitemap line follows the Site layer.
+- `licenseNotice.zh` / `licenseNotice.en` — the attribution appended by the copy
+  guard. The protected pages render them as `data-copy-license-*` attributes, so
+  `public/scripts/copy-guard.js` itself ships no personal string.
