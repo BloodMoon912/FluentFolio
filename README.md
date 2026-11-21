@@ -20,12 +20,14 @@
 - 🌏 **中文優先**：繁體中文與英文介面一鍵切換，搜尋支援拼音與粵拼
 
 > [!TIP]
-> FluentFolio 是從一個真實運作中的個人網站去除個人內容後整理成的範本。fork 之後依序做這四件事就能變成你自己的網站：
+> FluentFolio 是從一個真實運作中的個人網站去除個人內容後整理成的範本。它是「主題」，不是要 fork 後大改的起點：你自己的東西放在另一層，升級時只要合併主題。
 >
-> 1. 修改 [`src/lib/data.ts`](src/lib/data.ts)：名字、帳號、社交連結、About 頁的設備與遊戲清單。
-> 2. 修改 [`src/i18n/ui.ts`](src/i18n/ui.ts)：標題文案，以及私隱政策與使用條款。
-> 3. 替換 `public/` 與 `src/assets/` 裡的 logo、圖示、背景與音效（目前是自動生成的中性素材）。
-> 4. 刪除 `src/content/` 的示範文章，寫你自己的。
+> 1. 修改 [`site.config.json`](site.config.json)：標題、網址、作者、導覽、RSS、授權、社交連結、About 頁的設備與遊戲。
+> 2. 把 logo、favicon、圖示、背景影片與音效放進 `public/brand/`（目前是中性素材）。
+> 3. 文章與上述個人設定、品牌素材建議放在**另一個私有倉庫**，建置時用 `npm run fetch:content` 覆蓋進來。
+> 4. 需要改文案時才動 [`src/i18n/ui.ts`](src/i18n/ui.ts)。
+>
+> 完整的三層模型與合併步驟見 [`docs/UPGRADING.md`](docs/UPGRADING.md)。
 
 ## ✨ 功能特性
 
