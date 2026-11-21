@@ -145,10 +145,7 @@ function webAuthnOrigin(request: Request): { rpID: string; origin: string } | nu
 async function adminWebAuthnUserId(): Promise<Uint8Array<ArrayBuffer>> {
   const secret = env.ADMIN_SESSION_SECRET;
   if (!secret) throw new Error('Admin session secret is not configured');
-  const digest = await crypto.subtle.digest(
-    'SHA-256',
-    new TextEncoder().encode('fluentfolio:admin-webauthn-user:v1'),
-  );
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('fluentfolio:admin-webauthn-user:v1'));
   // `digest` is a plain ArrayBuffer, so the view is `Uint8Array<ArrayBuffer>` and
   // can be passed to generateRegistrationOptions() as `userID` without a cast.
   return new Uint8Array(digest);

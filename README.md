@@ -119,35 +119,35 @@
 
 全部都是選填，沒設定時對應功能會停用。完整清單與說明見 [`.env.example`](.env.example)。
 
-| 變數                                                  | 用途                                            |
-| ----------------------------------------------------- | ----------------------------------------------- |
-| `DISCORD_USER_ID`                                     | 首頁 Discord 動態面板顯示哪個帳號               |
-| `STEAM_API_KEY`、`STEAM_ID`                           | Steam 正在遊玩與個人資料                        |
-| `ACCESS_TEAM_DOMAIN`、`ACCESS_AUD`                    | Cloudflare Access（保護 `/admin`）              |
-| `ADMIN_PASSWORD`、`ADMIN_SESSION_SECRET`              | 後台登入與工作階段                              |
-| `ADMIN_WEBAUTHN_RP_ID`、`ADMIN_WEBAUTHN_ORIGIN`       | Passkey 的網域設定                              |
-| `GITHUB_TOKEN`、`GITHUB_REPO`、`GITHUB_BRANCH`        | 後台發佈文章時 commit 的目標                    |
-| `R2_PUBLIC_BASE_URL`                                  | 後台上傳圖片的公開網址                          |
-| `TURNSTILE_SECRET`、`TURNSTILE_HOSTNAMES`             | 訪客統計的人機驗證                              |
-| `VISITOR_SALT`、`VISITOR_COOKIE_SECRET`               | 訪客識別雜湊                                    |
-| `WATERMARK_SECRET`                                    | 文章浮水印                                      |
-| `DISCORD_BLOG_WEBHOOK_URL`                            | 發佈新文章時的 Discord 通知                     |
+| 變數                                            | 用途                               |
+| ----------------------------------------------- | ---------------------------------- |
+| `DISCORD_USER_ID`                               | 首頁 Discord 動態面板顯示哪個帳號  |
+| `STEAM_API_KEY`、`STEAM_ID`                     | Steam 正在遊玩與個人資料           |
+| `ACCESS_TEAM_DOMAIN`、`ACCESS_AUD`              | Cloudflare Access（保護 `/admin`） |
+| `ADMIN_PASSWORD`、`ADMIN_SESSION_SECRET`        | 後台登入與工作階段                 |
+| `ADMIN_WEBAUTHN_RP_ID`、`ADMIN_WEBAUTHN_ORIGIN` | Passkey 的網域設定                 |
+| `GITHUB_TOKEN`、`GITHUB_REPO`、`GITHUB_BRANCH`  | 後台發佈文章時 commit 的目標       |
+| `R2_PUBLIC_BASE_URL`                            | 後台上傳圖片的公開網址             |
+| `TURNSTILE_SECRET`、`TURNSTILE_HOSTNAMES`       | 訪客統計的人機驗證                 |
+| `VISITOR_SALT`、`VISITOR_COOKIE_SECRET`         | 訪客識別雜湊                       |
+| `WATERMARK_SECRET`                              | 文章浮水印                         |
+| `DISCORD_BLOG_WEBHOOK_URL`                      | 發佈新文章時的 Discord 通知        |
 
 ## 📖 配置說明
 
 ### 先改這幾個地方
 
-| 想改什麼                         | 在哪裡改                                                           |
-| -------------------------------- | ------------------------------------------------------------------ |
-| 名字、帳號、標語、社交連結       | [`src/lib/data.ts`](src/lib/data.ts)                               |
-| About 頁的設備與遊戲             | [`src/lib/data.ts`](src/lib/data.ts) 的 `aboutSetup`、`aboutGames` |
-| 捐助按鈕（Ko-fi、Liberapay 等）  | [`src/lib/data.ts`](src/lib/data.ts) 的 `supportLinks`，預設為空   |
-| 所有介面文字、私隱政策、使用條款 | [`src/i18n/ui.ts`](src/i18n/ui.ts)（`zh` 與 `en` 兩份）            |
-| 網域、資源 ID、Access 設定       | [`wrangler.jsonc`](wrangler.jsonc)                                 |
-| 配色、圓角、陰影                 | [`src/styles/tokens.css`](src/styles/tokens.css)                   |
-| Logo、favicon、PWA 圖示          | `public/logo.svg`、`public/favicon.svg`、`public/icons/`           |
-| 背景圖與背景影片                 | `src/assets/background.webp`、`public/background.mp4`、`.webm`     |
-| 彩蛋音效                         | `public/easter.mp3`                                                |
+| 想改什麼                         | 在哪裡改                                                                     |
+| -------------------------------- | ---------------------------------------------------------------------------- |
+| 名字、帳號、標語、社交連結       | [`src/lib/data.ts`](src/lib/data.ts)                                         |
+| About 頁的設備與遊戲             | [`src/lib/data.ts`](src/lib/data.ts) 的 `aboutSetup`、`aboutGames`           |
+| 捐助按鈕（Ko-fi、Liberapay 等）  | [`src/lib/data.ts`](src/lib/data.ts) 的 `supportLinks`，預設為空             |
+| 所有介面文字、私隱政策、使用條款 | [`src/i18n/ui.ts`](src/i18n/ui.ts)（`zh` 與 `en` 兩份）                      |
+| 網域、資源 ID、Access 設定       | [`wrangler.jsonc`](wrangler.jsonc)                                           |
+| 配色、圓角、陰影                 | [`src/styles/tokens.css`](src/styles/tokens.css)                             |
+| Logo、favicon、PWA 圖示          | `public/logo.svg`、`public/favicon.svg`、`public/icons/`                     |
+| 背景圖與背景影片                 | `src/assets/background.webp`、`public/background.mp4`、`.webm`               |
+| 彩蛋音效                         | `public/easter.mp3`                                                          |
 | 導覽列項目                       | [`src/layouts/BaseLayout.astro`](src/layouts/BaseLayout.astro) 的 `navItems` |
 
 ### 目錄結構
@@ -241,20 +241,20 @@ relatedWords: [sora] # 選填，其他詞條的 id（世界觀用 relatedEntries
 
 ## 🧞 指令
 
-| 指令                                       | 作用                                              |
-| ------------------------------------------ | ------------------------------------------------- |
-| `npm run dev`                              | 啟動本機開發伺服器                                |
-| `npm run build`                            | 建置正式版本（建置前會執行 `fetch:content`）      |
-| `npm run preview`                          | 本機預覽建置結果                                  |
-| `npm run check`                            | `astro check`：型別與診斷                         |
-| `npm run check:public`                     | 檢查 `public/scripts` 的瀏覽器端腳本型別          |
-| `npm run check:inline-scripts`             | 確認建置結果沒有可執行的行內腳本（CSP 要求）      |
-| `npm run lint`                             | 檢查本倉庫文件的 Markdown 格式                    |
-| `npm run validate:md`                      | 驗證文章 frontmatter、圖片、連結與關聯            |
-| `npm test`                                 | 單元測試                                          |
-| `npm run format` / `npm run format:check`  | 以 Prettier 格式化／檢查格式                      |
-| `npm run deploy`                           | 建置並執行 `wrangler deploy`（手動部署用）        |
-| `npm run fetch:content`                    | 私有內容模式：把內容倉庫抓進 `src/content`        |
+| 指令                                      | 作用                                         |
+| ----------------------------------------- | -------------------------------------------- |
+| `npm run dev`                             | 啟動本機開發伺服器                           |
+| `npm run build`                           | 建置正式版本（建置前會執行 `fetch:content`） |
+| `npm run preview`                         | 本機預覽建置結果                             |
+| `npm run check`                           | `astro check`：型別與診斷                    |
+| `npm run check:public`                    | 檢查 `public/scripts` 的瀏覽器端腳本型別     |
+| `npm run check:inline-scripts`            | 確認建置結果沒有可執行的行內腳本（CSP 要求） |
+| `npm run lint`                            | 檢查本倉庫文件的 Markdown 格式               |
+| `npm run validate:md`                     | 驗證文章 frontmatter、圖片、連結與關聯       |
+| `npm test`                                | 單元測試                                     |
+| `npm run format` / `npm run format:check` | 以 Prettier 格式化／檢查格式                 |
+| `npm run deploy`                          | 建置並執行 `wrangler deploy`（手動部署用）   |
+| `npm run fetch:content`                   | 私有內容模式：把內容倉庫抓進 `src/content`   |
 
 ## 📚 文件
 

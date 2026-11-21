@@ -8,10 +8,7 @@ describe('createEnglishSlug', () => {
   });
 
   it('uses an explicit English keyword for a Chinese title', () => {
-    assert.equal(
-      createEnglishSlug('我的遊戲筆記', 'Example Game Notes', 'blog', '2026-11-01'),
-      'example-game-notes',
-    );
+    assert.equal(createEnglishSlug('我的遊戲筆記', 'Example Game Notes', 'blog', '2026-11-01'), 'example-game-notes');
   });
 
   it('does not romanise a Chinese-only title', () => {

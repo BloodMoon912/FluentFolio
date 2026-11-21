@@ -332,23 +332,27 @@ const socialIcons: Record<string, string> = {
     </main>
 
     <div class="site-support">
-      {
-        supportLinks.length > 0 && (
-          <div class="support-buttons" role="group" aria-label="Support" data-i18n-aria="support">
-            {supportLinks.map((link) => (
-              <a
-                class:list={['support-button', `support-${link.id}`]}
-                href={link.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label={link.name}
-              >
-                <img src={link.image} alt={link.alt ?? link.name} loading="lazy" width={link.width} height={link.height} />
-              </a>
-            ))}
-          </div>
-        )
-      }
+      {supportLinks.length > 0 && (
+        <div class="support-buttons" role="group" aria-label="Support" data-i18n-aria="support">
+          {supportLinks.map((link) => (
+            <a
+              class:list={['support-button', `support-${link.id}`]}
+              href={link.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={link.name}
+            >
+              <img
+                src={link.image}
+                alt={link.alt ?? link.name}
+                loading="lazy"
+                width={link.width}
+                height={link.height}
+              />
+            </a>
+          ))}
+        </div>
+      )}
       <p class="site-license">
         <span data-i18n="license_prefix">{tr('zh', 'license_prefix')}</span>
         <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" rel="license noopener noreferrer">

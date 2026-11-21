@@ -418,7 +418,7 @@ const I18N: Record<Lang, Dict> = {
     brand_status: 'Status',
     brand_about: 'About',
     title_home: 'Home',
-    title_home_full: "My Personal Space | FluentFolio",
+    title_home_full: 'My Personal Space | FluentFolio',
     title_status: 'Status',
     title_about: 'About',
     title_404: '404',
@@ -618,7 +618,7 @@ const I18N: Record<Lang, Dict> = {
     legal_reviewed: 'Last reviewed: 3 November 2026',
     legal_owner: 'This website is managed by Your Name.',
     privacy_intro:
-      "My Personal Space (the “Website”) respects your privacy. This page explains how the Website handles information arising from browsing the Website and the arrangements that apply when you voluntarily provide personal data. It is prepared with reference to the Personal Data (Privacy) Ordinance (Cap. 486) of Hong Kong.",
+      'My Personal Space (the “Website”) respects your privacy. This page explains how the Website handles information arising from browsing the Website and the arrangements that apply when you voluntarily provide personal data. It is prepared with reference to the Personal Data (Privacy) Ordinance (Cap. 486) of Hong Kong.',
     privacy_collection_title: 'Personal Information Collection Statement',
     privacy_collection_body:
       "When you browse the Website, the server automatically receives and processes some technical and usage information, including the path you visited, the time of the visit, the country/region code supplied by Cloudflare, the referring URL that the browser sends on the first visit of each tab (document.referrer — the Website keeps only the referring hostname and excludes the Website's own domains), and a visitor hash used to tell browsers apart. For visitor statistics, the raw IP address is not written to the D1 database: it is first combined with a site-specific salt and processed with SHA-256, and only that hash is used for statistics and duplicate-write prevention. The Website does not store your User-Agent string or the full referring URL. You are not required to provide the technical data above directly. If you voluntarily contact the Website by email or another means, providing personal data is generally voluntary, but failing to provide information reasonably needed to answer your enquiry may prevent the Website from responding.",
@@ -648,7 +648,7 @@ const I18N: Record<Lang, Dict> = {
     privacy_contact_body:
       "For enquiries about this Privacy Policy, personal-data handling, or access and correction requests, email contact@example.com or use another contact method listed on the Website's About page.",
     terms_intro:
-      "These Terms of Use apply to My Personal Space (the “Website”). By browsing, accessing or using the Website, you agree to comply with these Terms and the laws of Hong Kong applicable to the Website.",
+      'These Terms of Use apply to My Personal Space (the “Website”). By browsing, accessing or using the Website, you agree to comply with these Terms and the laws of Hong Kong applicable to the Website.',
     terms_use_title: 'Use of the Website',
     terms_use_body:
       'You may use the Website lawfully, reasonably and without prejudicing the rights of others. You must not use the Website for unlawful activity, gain unauthorised access to or interfere with the Website or its systems, transmit malicious code, or use the Website in a manner that may harm the Website, other users or third parties.',

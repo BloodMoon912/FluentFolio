@@ -111,7 +111,7 @@ const desktopNav = /** @type {HTMLElement | null} */ (document.querySelector('.t
 const navIndicator = /** @type {HTMLElement | null} */ (desktopNav?.querySelector('.nav-selection-indicator'));
 let navIndicatorFrame = 0;
 const positionNavIndicator = () => {
-  if (!desktopNav || !navIndicator || window.matchMedia("(max-width: 1000px)").matches) {
+  if (!desktopNav || !navIndicator || window.matchMedia('(max-width: 1000px)').matches) {
     if (navIndicator) navIndicator.style.opacity = '0';
     return;
   }

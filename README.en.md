@@ -119,36 +119,36 @@ Step by step: [DEPLOY-CLOUDFLARE.md](DEPLOY-CLOUDFLARE.md). Repo and Workers Bui
 
 All optional; a missing value disables the matching feature. See [`.env.example`](.env.example) for the full list.
 
-| Variable                                          | Purpose                                         |
-| ------------------------------------------------- | ----------------------------------------------- |
-| `DISCORD_USER_ID`                                 | Account shown in the homepage Discord panel     |
-| `STEAM_API_KEY`, `STEAM_ID`                       | Steam now-playing and profile                   |
-| `ACCESS_TEAM_DOMAIN`, `ACCESS_AUD`                | Cloudflare Access (protects `/admin`)           |
-| `ADMIN_PASSWORD`, `ADMIN_SESSION_SECRET`          | Admin login and session                         |
-| `ADMIN_WEBAUTHN_RP_ID`, `ADMIN_WEBAUTHN_ORIGIN`   | Passkey domain settings                         |
-| `GITHUB_TOKEN`, `GITHUB_REPO`, `GITHUB_BRANCH`    | Where the admin commits published posts         |
-| `R2_PUBLIC_BASE_URL`                              | Public URL for admin image uploads              |
-| `TURNSTILE_SECRET`, `TURNSTILE_HOSTNAMES`         | Human verification for visitor stats            |
-| `VISITOR_SALT`, `VISITOR_COOKIE_SECRET`           | Visitor identity hashing                        |
-| `WATERMARK_SECRET`                                | Article watermark                               |
-| `DISCORD_BLOG_WEBHOOK_URL`                        | Discord notification on new posts               |
+| Variable                                        | Purpose                                     |
+| ----------------------------------------------- | ------------------------------------------- |
+| `DISCORD_USER_ID`                               | Account shown in the homepage Discord panel |
+| `STEAM_API_KEY`, `STEAM_ID`                     | Steam now-playing and profile               |
+| `ACCESS_TEAM_DOMAIN`, `ACCESS_AUD`              | Cloudflare Access (protects `/admin`)       |
+| `ADMIN_PASSWORD`, `ADMIN_SESSION_SECRET`        | Admin login and session                     |
+| `ADMIN_WEBAUTHN_RP_ID`, `ADMIN_WEBAUTHN_ORIGIN` | Passkey domain settings                     |
+| `GITHUB_TOKEN`, `GITHUB_REPO`, `GITHUB_BRANCH`  | Where the admin commits published posts     |
+| `R2_PUBLIC_BASE_URL`                            | Public URL for admin image uploads          |
+| `TURNSTILE_SECRET`, `TURNSTILE_HOSTNAMES`       | Human verification for visitor stats        |
+| `VISITOR_SALT`, `VISITOR_COOKIE_SECRET`         | Visitor identity hashing                    |
+| `WATERMARK_SECRET`                              | Article watermark                           |
+| `DISCORD_BLOG_WEBHOOK_URL`                      | Discord notification on new posts           |
 
 ## 📖 Configuration
 
 ### What to edit where
 
-| To change                                   | Edit                                                                          |
-| ------------------------------------------- | ----------------------------------------------------------------------------- |
-| Name, handles, tagline, social links        | [`src/lib/data.ts`](src/lib/data.ts)                                          |
-| About-page setup and games                  | `aboutSetup`, `aboutGames` in [`src/lib/data.ts`](src/lib/data.ts)            |
-| Donation buttons (Ko-fi, Liberapay, ...)    | `supportLinks` in [`src/lib/data.ts`](src/lib/data.ts), empty by default      |
-| All UI text, privacy policy, terms          | [`src/i18n/ui.ts`](src/i18n/ui.ts) (`zh` and `en` copies)                    |
-| Domains, resource IDs, Access settings      | [`wrangler.jsonc`](wrangler.jsonc)                                            |
-| Colors, radius, shadows                     | [`src/styles/tokens.css`](src/styles/tokens.css)                              |
-| Logo, favicon, PWA icons                    | `public/logo.svg`, `public/favicon.svg`, `public/icons/`                      |
-| Background image and video                  | `src/assets/background.webp`, `public/background.mp4`, `.webm`                |
-| Easter-egg sound                            | `public/easter.mp3`                                                           |
-| Nav items                                   | `navItems` in [`src/layouts/BaseLayout.astro`](src/layouts/BaseLayout.astro)  |
+| To change                                | Edit                                                                         |
+| ---------------------------------------- | ---------------------------------------------------------------------------- |
+| Name, handles, tagline, social links     | [`src/lib/data.ts`](src/lib/data.ts)                                         |
+| About-page setup and games               | `aboutSetup`, `aboutGames` in [`src/lib/data.ts`](src/lib/data.ts)           |
+| Donation buttons (Ko-fi, Liberapay, ...) | `supportLinks` in [`src/lib/data.ts`](src/lib/data.ts), empty by default     |
+| All UI text, privacy policy, terms       | [`src/i18n/ui.ts`](src/i18n/ui.ts) (`zh` and `en` copies)                    |
+| Domains, resource IDs, Access settings   | [`wrangler.jsonc`](wrangler.jsonc)                                           |
+| Colors, radius, shadows                  | [`src/styles/tokens.css`](src/styles/tokens.css)                             |
+| Logo, favicon, PWA icons                 | `public/logo.svg`, `public/favicon.svg`, `public/icons/`                     |
+| Background image and video               | `src/assets/background.webp`, `public/background.mp4`, `.webm`               |
+| Easter-egg sound                         | `public/easter.mp3`                                                          |
+| Nav items                                | `navItems` in [`src/layouts/BaseLayout.astro`](src/layouts/BaseLayout.astro) |
 
 ### Directory structure
 
@@ -241,20 +241,20 @@ By default posts and code share one repository. If you want public code (or outs
 
 ## 🧞 Commands
 
-| Command                                   | Action                                                   |
-| ----------------------------------------- | -------------------------------------------------------- |
-| `npm run dev`                             | Start the local dev server                               |
-| `npm run build`                           | Production build (runs `fetch:content` first)            |
-| `npm run preview`                         | Preview the build locally                                |
-| `npm run check`                           | `astro check`: types and diagnostics                     |
-| `npm run check:public`                    | Type-check browser scripts in `public/scripts`           |
-| `npm run check:inline-scripts`            | Ensure the build has no executable inline scripts (CSP)  |
-| `npm run lint`                            | Lint this repo's Markdown docs                           |
-| `npm run validate:md`                     | Validate post frontmatter, images, links, references     |
-| `npm test`                                | Unit tests                                               |
-| `npm run format` / `npm run format:check` | Format / check with Prettier                             |
-| `npm run deploy`                          | Build and `wrangler deploy` (manual deploys)             |
-| `npm run fetch:content`                   | Private content mode: fetch the content repo             |
+| Command                                   | Action                                                  |
+| ----------------------------------------- | ------------------------------------------------------- |
+| `npm run dev`                             | Start the local dev server                              |
+| `npm run build`                           | Production build (runs `fetch:content` first)           |
+| `npm run preview`                         | Preview the build locally                               |
+| `npm run check`                           | `astro check`: types and diagnostics                    |
+| `npm run check:public`                    | Type-check browser scripts in `public/scripts`          |
+| `npm run check:inline-scripts`            | Ensure the build has no executable inline scripts (CSP) |
+| `npm run lint`                            | Lint this repo's Markdown docs                          |
+| `npm run validate:md`                     | Validate post frontmatter, images, links, references    |
+| `npm test`                                | Unit tests                                              |
+| `npm run format` / `npm run format:check` | Format / check with Prettier                            |
+| `npm run deploy`                          | Build and `wrangler deploy` (manual deploys)            |
+| `npm run fetch:content`                   | Private content mode: fetch the content repo            |
 
 ## 📚 Docs
 
