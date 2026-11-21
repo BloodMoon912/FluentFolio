@@ -1,3 +1,4 @@
+import { siteConfig } from '../src/site.config.ts';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { parseFrontmatter, serializeContentFrontmatter } from '../src/lib/frontmatter.ts';
@@ -15,7 +16,7 @@ describe('generic content frontmatter', () => {
         description: 'desc',
         relatedLore: ['alpha', 'beta'],
         tags: [],
-        author: 'Your Name',
+        author: siteConfig.authorName,
         draft: true,
       },
       'Body text',

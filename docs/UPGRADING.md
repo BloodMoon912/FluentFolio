@@ -82,3 +82,20 @@ must not hardcode a site:
 - `licenseNotice.zh` / `licenseNotice.en` — the attribution appended by the copy
   guard. The protected pages render them as `data-copy-license-*` attributes, so
   `public/scripts/copy-guard.js` itself ships no personal string.
+
+## 由 Site 層決定的生成內容
+
+`sitemap`、robots、RSS/Atom、預設作者、管理後台名稱與 WebAuthn salt 都在執行期或建置期讀 `siteConfig`，所以升級時只需要保留這一個檔案（以及下列 Site 層檔案），不必改任何 lib：
+
+| 值              | 影響                                                         |
+| --------------- | ------------------------------------------------------------ |
+| `url`           | canonical、robots 的 Sitemap、feed 連結與 `<id>`             |
+| `licenseNotice` | 複製摘錄時附加的版權行（`data-copy-license-*`）              |
+| `feeds`         | `/rss*.xml`、`/atom*.xml` 的標題與描述                       |
+| `authorName`    | frontmatter 與 CMS 的預設作者                                |
+| `adminName`     | 管理後台／passkey 提示名稱                                   |
+| `discordName`   | 發文通知的 webhook 名稱                                      |
+| `webauthnSalt`  | passkey 的 user handle salt（**改了會讓既有 passkey 失效**） |
+| `cmsSlug`       | GitHub CMS 的 User-Agent                                     |
+
+其餘持續由 Site 層持有的檔案：`src/lib/data.ts`、`src/i18n/ui.ts`、`src/lib/terminology.ts`、`src/pages/about.astro`、`src/pages/terms.astro`、`public/_headers`、`public/` 的圖示與品牌檔、`src/content/`、`tests/fixtures/`。

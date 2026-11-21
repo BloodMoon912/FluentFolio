@@ -1,3 +1,4 @@
+import { siteConfig } from '../src/site.config.ts';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import {
@@ -16,7 +17,7 @@ const FULL: PostFrontmatter = {
   type: 'essay',
   category: 'Tech',
   tags: ['alpha', 'beta'],
-  author: 'Your Name',
+  author: siteConfig.authorName,
   draft: false,
   featured: true,
 };
@@ -64,7 +65,7 @@ describe('serializeFrontmatter', () => {
     assert.equal(lines[4], 'type: "essay"');
     assert.equal(lines[5], 'category: "Tech"');
     assert.deepEqual(lines.slice(6, 9), ['tags:', '  - alpha', '  - beta']);
-    assert.equal(lines[9], 'author: "Your Name"');
+    assert.equal(lines[9], `author: "${siteConfig.authorName}"`);
     assert.equal(lines[10], 'featured: true');
     assert.equal(lines[11], 'draft: false');
     assert.equal(lines[12], '---');
@@ -146,7 +147,7 @@ describe('dataToFrontmatter', () => {
     assert.equal(result.title, 't');
     assert.equal(result.date, '2026-01-01');
     assert.equal(result.type, 'essay');
-    assert.equal(result.author, 'Your Name');
+    assert.equal(result.author, siteConfig.authorName);
     assert.equal(result.category, 'General');
     assert.deepEqual(result.tags, ['b']);
   });

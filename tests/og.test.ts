@@ -1,3 +1,4 @@
+import { siteConfig } from '../src/site.config.ts';
 import assert from 'node:assert/strict';
 import { statSync } from 'node:fs';
 import { describe, it } from 'node:test';
@@ -13,8 +14,8 @@ import { renderOgSvg } from '../src/lib/og.ts';
 const CARD = {
   eyebrow: 'Tech',
   title: 'A post title',
-  meta: 'Your Name',
-  brand: 'FluentFolio',
+  meta: siteConfig.authorName,
+  brand: siteConfig.titleSuffix,
 };
 
 /** Reads the signature and IHDR dimensions of a PNG produced by resvg. */
@@ -37,8 +38,8 @@ describe('renderOgSvg', () => {
     const svg = renderOgSvg(CARD);
     assert.equal(svg.includes('TECH'), true);
     assert.equal(svg.includes('A post title'), true);
-    assert.equal(svg.includes('Your Name'), true);
-    assert.equal(svg.includes('FluentFolio'), true);
+    assert.equal(svg.includes(siteConfig.authorName), true);
+    assert.equal(svg.includes(siteConfig.titleSuffix), true);
   });
 
   it('escapes XML-significant characters in every field', () => {
@@ -90,8 +91,8 @@ describe('renderOgPng', () => {
     const png = renderOgPng({
       eyebrow: '\u96a8\u7b46\u65e5\u8a18',
       title: '\u95dc\u65bc\u6697\u591c\u8840\u6708\u7684\u500b\u4eba\u7a7a\u9593',
-      meta: 'Your Name \u00b7 2026-09-14',
-      brand: 'FluentFolio',
+      meta: `${siteConfig.authorName} \u00b7 2026-09-14`,
+      brand: siteConfig.titleSuffix,
     });
     assert.deepEqual(pngInfo(png), { width: 1200, height: 630 });
   });
