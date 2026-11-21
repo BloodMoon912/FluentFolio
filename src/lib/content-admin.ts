@@ -1,3 +1,4 @@
+import { siteConfig } from '../site.config.ts';
 // Shared validation/normalisation for the four CMS collections. Pure module so
 // both the API routes and the unit tests use the same rules; `frontmatter.ts`
 // remains the serializer.
@@ -80,7 +81,7 @@ export function normalizeContentData(collection: ContentCollection, input: Recor
         updatedDate: asString(input.updatedDate) || undefined,
         category: asString(input.category) || 'General',
         tags: asStringList(input.tags),
-        author: asString(input.author) || 'Your Name',
+        author: asString(input.author) || siteConfig.authorName,
         featured: asBoolean(input.featured),
       },
       errors,
@@ -105,7 +106,7 @@ export function normalizeContentData(collection: ContentCollection, input: Recor
         description: asString(input.description),
         relatedLore: asStringList(input.relatedLore),
         tags: asStringList(input.tags),
-        author: asString(input.author) || 'Your Name',
+        author: asString(input.author) || siteConfig.authorName,
       },
       errors,
     };

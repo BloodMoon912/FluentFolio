@@ -7,7 +7,7 @@ const $$ = (selector) => /** @type {any} */ (document.querySelectorAll(selector)
 const dictEl = document.getElementById('i18n-dict');
 const I18N = dictEl?.textContent ? JSON.parse(dictEl.textContent) : {};
 const root = document.documentElement;
-const SITE_SUFFIX = 'FluentFolio';
+const SITE_SUFFIX = document.documentElement.dataset.siteSuffix || '';
 
 /** @type {'zh' | 'en'} */
 let lang = 'zh';
@@ -62,7 +62,7 @@ function applyLang() {
   });
   const titleEl = /** @type {HTMLTitleElement | null} */ (document.querySelector('title[data-title-key]'));
   const titleKey = titleEl?.dataset.titleKey ?? '';
-  // A page can opt out of the " · FluentFolio" suffix (the homepage has its own
+  // A page can opt out of the " · <suffix>" suffix (the homepage has its own
   // complete title). The server renders the same flag into
   // `data-title-suffix`, so the language toggle cannot re-add it.
   const titleSuffix = titleEl?.dataset.titleSuffix !== 'false';

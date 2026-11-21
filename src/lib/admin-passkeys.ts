@@ -1,3 +1,4 @@
+import { siteConfig } from '../site.config.ts';
 import { env } from 'cloudflare:workers';
 import {
   generateAuthenticationOptions,
@@ -18,7 +19,7 @@ import {
 import { getClientIp } from './request';
 import { isSameOriginRequest } from './request-security';
 
-const RP_NAME = '你的名字管理後台';
+const RP_NAME = `${siteConfig.adminName}管理後台`;
 
 type ChallengePurpose = 'login' | 'register';
 type StoredPasskey = {
@@ -145,7 +146,10 @@ function webAuthnOrigin(request: Request): { rpID: string; origin: string } | nu
 async function adminWebAuthnUserId(): Promise<Uint8Array<ArrayBuffer>> {
   const secret = env.ADMIN_SESSION_SECRET;
   if (!secret) throw new Error('Admin session secret is not configured');
-  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('fluentfolio:admin-webauthn-user:v1'));
+  const digest = await crypto.subtle.digest(
+    'SHA-256',
+    new TextEncoder().encode(`${siteConfig.webauthnSalt}:admin-webauthn-user:v1`),
+  );
   // `digest` is a plain ArrayBuffer, so the view is `Uint8Array<ArrayBuffer>` and
   // can be passed to generateRegistrationOptions() as `userID` without a cast.
   return new Uint8Array(digest);

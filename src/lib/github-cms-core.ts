@@ -1,3 +1,4 @@
+import { siteConfig } from '../site.config.ts';
 // GitHub-backed content store — HTTP layer.
 //
 // This module is deliberately free of `cloudflare:workers`: the Worker-facing
@@ -91,7 +92,7 @@ async function githubFetch(ctx: GithubContext, path: string, init?: RequestInit)
       Authorization: `Bearer ${token}`,
       Accept: 'application/vnd.github+json',
       'X-GitHub-Api-Version': '2022-11-28',
-      'User-Agent': 'fluentfolio-admin-cms',
+      'User-Agent': `${siteConfig.cmsSlug}-admin-cms`,
       ...(init?.headers || {}),
     },
   });

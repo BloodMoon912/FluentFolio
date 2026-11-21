@@ -1,3 +1,4 @@
+import { siteConfig } from '../../../../site.config.ts';
 import type { APIRoute } from 'astro';
 import { requireAdmin } from '../../../../lib/admin-auth';
 import { GithubCmsError, getBlogFile, listAllPostsWithFrontmatter, putBlogFile } from '../../../../lib/github-cms';
@@ -114,7 +115,7 @@ export const POST: APIRoute = async ({ request, site, url }) => {
       updatedDate: body.updatedDate ? String(body.updatedDate) : undefined,
       category: String(body.category || 'General'),
       tags: Array.isArray(body.tags) ? body.tags.map(String) : [],
-      author: String(body.author || 'Your Name'),
+      author: String(body.author || siteConfig.authorName),
       draft: Boolean(body.draft),
       featured: Boolean(body.featured),
       crawl: normalizeCrawlTier(body.crawl),

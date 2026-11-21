@@ -1,3 +1,4 @@
+import { siteConfig } from '../site.config.ts';
 import { env } from 'cloudflare:workers';
 
 // Sends a "new post published" notification to Discord via an Incoming
@@ -12,7 +13,7 @@ export interface PublishedPostSummary {
   slug: string;
   category: string;
   tags: string[];
-  siteUrl: string; // e.g. https://www.example.com
+  siteUrl: string; // e.g. https://example.com
 }
 
 const CATEGORY_COLORS: Record<string, number> = {
@@ -34,7 +35,7 @@ export async function notifyBlogPublished(post: PublishedPostSummary): Promise<{
   const postUrl = `${post.siteUrl.replace(/\/$/, '')}/posts/blog/${post.slug}`;
 
   const payload = {
-    username: '我的個人空間',
+    username: siteConfig.discordName,
     embeds: [
       {
         title: `📝 新文章發布：${post.title}`,

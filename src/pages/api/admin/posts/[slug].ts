@@ -1,3 +1,4 @@
+import { siteConfig } from '../../../../site.config.ts';
 import type { APIRoute } from 'astro';
 import { requireAdmin } from '../../../../lib/admin-auth';
 import { GithubCmsError, deleteBlogFile, getBlogFile, putBlogFile } from '../../../../lib/github-cms';
@@ -98,7 +99,7 @@ export const POST: APIRoute = async ({ request, params, site, url }) => {
           : undefined,
       category: String(body.category ?? previous.category ?? 'General'),
       tags: Array.isArray(body.tags) ? body.tags.map(String) : Array.isArray(previous.tags) ? previous.tags : [],
-      author: String(body.author ?? previous.author ?? 'Your Name'),
+      author: String(body.author ?? previous.author ?? siteConfig.authorName),
       draft: body.draft !== undefined ? Boolean(body.draft) : Boolean(previous.draft),
       featured: body.featured !== undefined ? Boolean(body.featured) : Boolean(previous.featured),
       // Not exposed in the CMS UI; preserve a hand-written value across saves.

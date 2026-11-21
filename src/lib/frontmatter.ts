@@ -1,3 +1,4 @@
+import { siteConfig } from '../site.config.ts';
 // Frontmatter parsing / serialization for blog posts.
 //
 // This is the single source of truth for the on-disk post format, and the
@@ -131,7 +132,7 @@ export function dataToFrontmatter(
     updatedDate: overrides.updatedDate ?? (data.updatedDate ? String(data.updatedDate) : undefined),
     category: String(overrides.category ?? data.category ?? 'General'),
     tags: overrides.tags ?? (Array.isArray(data.tags) ? data.tags : []),
-    author: String(overrides.author ?? data.author ?? 'Your Name'),
+    author: String(overrides.author ?? data.author ?? siteConfig.authorName),
     draft: overrides.draft ?? Boolean(data.draft),
     featured: overrides.featured ?? Boolean(data.featured),
     crawl: overrides.crawl ?? normalizeCrawlTier(data.crawl),

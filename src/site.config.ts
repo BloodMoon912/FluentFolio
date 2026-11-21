@@ -9,7 +9,7 @@
 // Keep it dependency-light: it is imported by the layout at build time and must
 // not touch the DOM or read environment variables.
 
-import { profile } from './lib/data';
+import { profile } from './lib/data.ts';
 
 export interface NavItem {
   href: string;
@@ -35,6 +35,16 @@ export interface SiteConfig {
     blog: { title: string; description: string };
     novel: { title: string; description: string };
   };
+  /** Default author name used by frontmatter and CMS fallbacks. */
+  authorName: string;
+  /** Name shown in the admin/passkey UI. */
+  adminName: string;
+  /** Webhook display name for publish notifications. */
+  discordName: string;
+  /** Stable salt for the WebAuthn user handle; changing it invalidates passkeys. */
+  webauthnSalt: string;
+  /** Repository slug used in the CMS User-Agent. */
+  cmsSlug: string;
   /** Desktop and mobile navigation, in display order. */
   nav: NavItem[];
 }
@@ -52,6 +62,11 @@ export const siteConfig: SiteConfig = {
     blog: { title: 'FluentFolio Blog', description: 'FluentFolio 的開發、設計與實驗筆記。' },
     novel: { title: 'FluentFolio Novel', description: 'FluentFolio 的連載小說。' },
   },
+  authorName: 'Your Name',
+  adminName: 'FluentFolio',
+  discordName: 'FluentFolio',
+  webauthnSalt: 'fluentfolio',
+  cmsSlug: 'fluentfolio',
   nav: [
     { href: '/', key: 'brand_home', exact: true },
     { href: '/posts', key: 'brand_posts', exact: false },

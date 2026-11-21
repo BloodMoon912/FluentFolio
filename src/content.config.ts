@@ -1,3 +1,4 @@
+import { siteConfig } from './site.config.ts';
 import { defineCollection } from 'astro:content';
 import { glob } from 'astro/loaders';
 import { z } from 'astro/zod';
@@ -23,7 +24,7 @@ const blog = defineCollection({
     updatedDate: z.coerce.date().optional(),
     category: z.string().default('General'),
     tags: z.array(z.string()).default([]),
-    author: z.string().default('Your Name'),
+    author: z.string().default(siteConfig.authorName),
     draft: z.boolean().default(false),
     featured: z.boolean().default(false),
     // Optional per-entry overrides; absent means "use the collection default"
@@ -49,7 +50,7 @@ const novel = defineCollection({
     description: z.string().default(''),
     relatedLore: z.array(z.string()).default([]),
     tags: z.array(z.string()).default([]),
-    author: z.string().default('Your Name'),
+    author: z.string().default(siteConfig.authorName),
     draft: z.boolean().default(false),
     crawl: crawlTierSchema.optional(),
     copyProtect: z.boolean().optional(),

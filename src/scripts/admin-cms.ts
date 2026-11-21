@@ -1,3 +1,4 @@
+import { siteConfig } from '../site.config.ts';
 // Online admin CMS: post list and search, batch operations, the Markdown editor
 // (preview, lint, upload) and tag management.
 //
@@ -840,7 +841,7 @@ document.getElementById('post-form')!.addEventListener('submit', async (event) =
       tags: currentTags,
       featured: fFeatured.checked,
       type: fType.value.trim() || 'essay',
-      author: 'Your Name',
+      author: siteConfig.authorName,
     });
   } else if (currentCollection === 'novel') {
     Object.assign(data, {
@@ -852,7 +853,7 @@ document.getElementById('post-form')!.addEventListener('submit', async (event) =
       order: Number(fOrder.value || 0),
       relatedLore: currentRelated,
       tags: currentTags,
-      author: 'Your Name',
+      author: siteConfig.authorName,
     });
   } else if (currentCollection === 'dictionary') {
     Object.assign(data, {
