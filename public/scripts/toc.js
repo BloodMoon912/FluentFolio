@@ -63,6 +63,7 @@
 // `[data-toc-link]` on each tick means no observer has to be re-bound.
 (function () {
   var activeLockUntil = 0;
+  var lockTimer = 0;
   var tocMobileQuery = window.matchMedia('(max-width: 1079px)');
 
   // Keep the TOC visible without JavaScript. Once this controller is ready,
@@ -94,8 +95,20 @@
   function update() {
     // A click on a TOC link wins briefly so the two headings at the very
     // bottom of a short page (which cannot scroll past the threshold) still
-    // show their own active marker.
-    if (Date.now() < activeLockUntil) return;
+    // show their own active marker. If the reader keeps scrolling during that
+    // window, re-run once it expires so the marker cannot stay stale.
+    if (Date.now() < activeLockUntil) {
+      if (!lockTimer) {
+        lockTimer = window.setTimeout(
+          function () {
+            lockTimer = 0;
+            update();
+          },
+          activeLockUntil - Date.now() + 20,
+        );
+      }
+      return;
+    }
 
     var links = document.querySelectorAll('[data-toc-link]');
     if (!links.length) return;
@@ -127,6 +140,25 @@
       if (active) links[j].setAttribute('aria-current', 'location');
       else links[j].removeAttribute('aria-current');
     }
+    positionIndicator(current);
+  }
+
+  // The accent bar is one absolutely-positioned element instead of a border on
+  // every row: moving it is a transform, so scroll-spy updates never relayout
+  // the list. offsetTop is measured against .post-toc__body (position:relative).
+  /** @param {Element | null} current */
+  function positionIndicator(current) {
+    var body = document.querySelector('.post-toc__body');
+    var indicator = body ? body.querySelector('[data-toc-indicator]') : null;
+    if (!body || !(indicator instanceof HTMLElement)) return;
+    if (!current || !body.contains(current)) {
+      indicator.style.opacity = '0';
+      return;
+    }
+    var link = /** @type {HTMLElement} */ (current);
+    indicator.style.transform = 'translateY(' + link.offsetTop + 'px)';
+    indicator.style.height = link.offsetHeight + 'px';
+    indicator.style.opacity = '1';
   }
 
   if (!window.__bmTocBound) {
@@ -166,6 +198,9 @@
         if (toc) {
           var isOpen = toc.classList.toggle('is-open');
           toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+          // Re-measure after the disclosure opens: the rows were collapsed
+          // (max-height:0) while closed, so offsets are only valid now.
+          update();
         }
         return;
       }

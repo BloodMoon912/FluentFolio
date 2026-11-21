@@ -489,10 +489,34 @@
   color: var(--muted);
 }
 
+.post-toc__body {
+  position: relative;
+  margin: 0 15px 14px;
+}
+
+/* The rail stays a plain 1px line; the active marker is this single accent bar
+ * sliding between entries, so the list keeps one continuous rhythm instead of
+ * a border that flickers on every item. */
+.post-toc__indicator {
+  position: absolute;
+  left: -1px;
+  top: 0;
+  width: 2px;
+  height: 0;
+  border-radius: 999px;
+  background: var(--accent-2);
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    transform var(--fluent-duration-normal) var(--fluent-ease-standard),
+    height var(--fluent-duration-normal) var(--fluent-ease-standard),
+    opacity var(--fluent-duration-fast) var(--fluent-ease-standard);
+}
+
 .post-toc__list {
   display: grid;
   gap: 2px;
-  margin: 0 15px 14px;
+  margin: 0;
   padding: 0;
   border-left: 1px solid var(--line);
   list-style: none;
@@ -530,10 +554,12 @@
 }
 
 .post-toc__item a {
-  display: block;
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  align-items: baseline;
+  column-gap: 8px;
   margin-left: -1px;
-  padding: 6px 0 6px 12px;
-  border-left: 2px solid transparent;
+  padding: 6px 8px 6px 10px;
   border-radius: 0 6px 6px 0;
   color: var(--muted);
   font-size: 13px;
@@ -542,8 +568,21 @@
   overflow-wrap: anywhere;
   transition:
     color var(--fluent-duration-fast) var(--fluent-ease-standard),
-    border-color var(--fluent-duration-fast) var(--fluent-ease-standard),
     background-color var(--fluent-duration-fast) var(--fluent-ease-standard);
+}
+
+.post-toc__index {
+  font-size: 10.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  text-align: center;
+  color: var(--muted);
+  transition: color var(--fluent-duration-fast) var(--fluent-ease-standard);
+}
+
+.post-toc__text {
+  min-width: 0;
 }
 
 .post-toc__item a:hover {
@@ -555,12 +594,33 @@
 .post-toc__item a.active,
 .post-toc__item a[aria-current='location'] {
   color: var(--text);
-  border-left-color: var(--text);
+  background: color-mix(in srgb, var(--accent-2) 12%, transparent);
+}
+
+.post-toc__item a.active .post-toc__index,
+.post-toc__item a[aria-current='location'] .post-toc__index {
+  color: var(--accent-2);
 }
 
 .post-toc__item--h3 a {
-  padding-left: 24px;
   font-size: 12.5px;
+}
+
+/* h3 entries inherit the same grid, so the dot sits in the number column and
+ * nested headings stay aligned with their parent section. */
+.post-toc__item--h3 a::before {
+  content: '';
+  width: 4px;
+  height: 4px;
+  border-radius: 999px;
+  background: currentColor;
+  opacity: 0.45;
+  justify-self: center;
+  align-self: center;
+}
+
+.post-toc[data-toc-collapsible]:not(.is-open) .post-toc__indicator {
+  opacity: 0;
 }
 
 @media (min-width: 1080px) {
@@ -596,6 +656,10 @@
     opacity: 1;
     visibility: visible;
     transition: none;
+  }
+
+  .post-toc__body {
+    margin: 0;
   }
 
   /* Native scrollbar is hidden behind a thin translucent thumb instead of the

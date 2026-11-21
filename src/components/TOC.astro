@@ -30,6 +30,14 @@ interface Props {
 
 const { headings, label = tr(DEFAULT_LANG, 'toc_label'), minDepth = 2, maxDepth = 3 } = Astro.props;
 const items = headings.filter((heading) => heading.depth >= minDepth && heading.depth <= maxDepth);
+
+// h2 entries are numbered per section; h3 entries are nested under the section
+// and get a dot instead of a number so the two levels read as a hierarchy.
+let sectionNumber = 0;
+const entries = items.map((heading) => ({
+  ...heading,
+  number: heading.depth === 2 ? ++sectionNumber : null,
+}));
 ---
 
 {items.length > 1 && (
@@ -43,15 +51,23 @@ const items = headings.filter((heading) => heading.depth >= minDepth && heading.
     <div class="post-toc__title" id="post-toc-title" data-i18n="toc_label">
       {label}
     </div>
-    <ol class="post-toc__list" id="post-toc-list">
-      {items.map((heading) => (
-        <li class:list={['post-toc__item', `post-toc__item--h${heading.depth}`]}>
-          <a href={`#${heading.slug}`} data-toc-link={heading.slug}>
-            {heading.text}
-          </a>
-        </li>
-      ))}
-    </ol>
+    <div class="post-toc__body">
+      <span class="post-toc__indicator" data-toc-indicator aria-hidden="true"></span>
+      <ol class="post-toc__list" id="post-toc-list">
+        {entries.map((heading) => (
+          <li class:list={['post-toc__item', `post-toc__item--h${heading.depth}`]}>
+            <a href={`#${heading.slug}`} data-toc-link={heading.slug}>
+              {heading.number !== null && (
+                <span class="post-toc__index" aria-hidden="true">
+                  {heading.number}
+                </span>
+              )}
+              <span class="post-toc__text">{heading.text}</span>
+            </a>
+          </li>
+        ))}
+      </ol>
+    </div>
   </nav>
 )}
 
