@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro';
 import { getCollection } from 'astro:content';
 import { buildRobotsTxt } from '../lib/robots-txt';
+import { siteConfig } from '../site.config';
 import type { CrawlPolicyEntry } from '../lib/crawl-policy';
 
 // The policy only changes when content or its frontmatter changes, so the file
@@ -50,7 +51,7 @@ export const GET: APIRoute = async () => {
     })),
   ];
 
-  return new Response(buildRobotsTxt(entries), {
+  return new Response(buildRobotsTxt(entries, siteConfig.url), {
     headers: { 'Content-Type': 'text/plain; charset=utf-8' },
   });
 };

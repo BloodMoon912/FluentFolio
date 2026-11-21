@@ -26,6 +26,10 @@ export interface SiteConfig {
   titleSuffix: string;
   /** Extra names search engines may treat as the same site. */
   alternateNames: string[];
+  /** Absolute origin, no trailing slash. Used by robots.txt and feeds. */
+  url: string;
+  /** Attribution line appended to copied excerpts, per language. */
+  licenseNotice: { zh: string; en: string };
   /** Desktop and mobile navigation, in display order. */
   nav: NavItem[];
 }
@@ -34,6 +38,11 @@ export const siteConfig: SiteConfig = {
   title: 'FluentFolio · Personal Space',
   titleSuffix: 'FluentFolio',
   alternateNames: [...new Set([profile.nameShort, profile.nameZh, profile.nameEn, profile.name])],
+  url: 'https://www.example.com',
+  licenseNotice: {
+    zh: '© 你的名字 版權所有，轉載請註明出處',
+    en: '© Your Name. All rights reserved. Please credit the source when quoting.',
+  },
   nav: [
     { href: '/', key: 'brand_home', exact: true },
     { href: '/posts', key: 'brand_posts', exact: false },

@@ -93,4 +93,3 @@
     if (image instanceof HTMLImageElement) openDialog(image);
   });
 })();
-

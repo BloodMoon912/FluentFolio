@@ -54,11 +54,18 @@ function rangeTouchesProtected(range) {
   return null;
 }
 
-function licenseForLanguage() {
-  const language = document.documentElement.lang || '';
-  return language.toLowerCase().startsWith('en')
-    ? '© Your Name. All rights reserved. Please credit the source when quoting.'
-    : undefined;
+/**
+ * The attribution line comes from the Site layer via data attributes on the
+ * protected container; the guard itself ships no personal string.
+ *
+ * @param {Element} root
+ * @returns {string | undefined}
+ */
+function licenseForLanguage(root) {
+  const english = (document.documentElement.lang || '').toLowerCase().startsWith('en');
+  const configured = root.getAttribute(english ? 'data-copy-license-en' : 'data-copy-license-zh');
+  if (configured) return configured;
+  return english ? '© Your Name. All rights reserved. Please credit the source when quoting.' : undefined;
 }
 
 /**
@@ -81,7 +88,7 @@ function replaceSelection(event) {
     selection: selection.toString(),
     title: document.title,
     url: window.location.href,
-    license: licenseForLanguage(),
+    license: licenseForLanguage(root),
     maxChars,
   });
 

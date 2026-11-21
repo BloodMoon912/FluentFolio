@@ -96,7 +96,8 @@ function isCoveredByAiPrefix(path: string): boolean {
  * programme is approved, this is the single place that switches `paid` to the
  * HTTP 402 / charge policy — robots.txt itself cannot express a price.
  */
-export function buildRobotsTxt(entries: readonly CrawlPolicyEntry[]): string {
+export function buildRobotsTxt(entries: readonly CrawlPolicyEntry[], origin: string = SITE_ORIGIN): string {
+  const sitemapUrl = `${origin.replace(/\/$/, '')}/sitemap.xml`;
   const trialPaths = trialNovelPathsFor(entries);
   const extraRestricted = restrictedPathsFor(entries)
     .map(({ path }) => path)
@@ -110,7 +111,7 @@ export function buildRobotsTxt(entries: readonly CrawlPolicyEntry[]): string {
     'Allow: /',
     'Disallow: /admin',
     `Content-Signal: ${CONTENT_SIGNAL}`,
-    `Sitemap: ${SITEMAP_URL}`,
+    `Sitemap: ${sitemapUrl}`,
     '',
   ];
 

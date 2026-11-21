@@ -7,6 +7,7 @@ import ReadingProgress from '../../../components/ReadingProgress.astro';
 import TOC from '../../../components/TOC.astro';
 import { chapterLabel, novelNeighbours } from '../../../lib/content-feed';
 import { COPY_MAX_CHARS, isCopyProtected } from '../../../lib/copy-protection';
+import { siteConfig } from '../../../site.config';
 import { formatHKTDate } from '../../../lib/time';
 import { profile } from '../../../lib/data';
 import { t as tr } from '../../../lib/i18n';
@@ -93,6 +94,8 @@ const copyProtected = isCopyProtected('novel', chapter.data.copyProtect);
           data-novel-content
           data-copy-protect={copyProtected ? 'true' : undefined}
           data-copy-max={COPY_MAX_CHARS}
+          data-copy-license-zh={siteConfig.licenseNotice.zh}
+          data-copy-license-en={siteConfig.licenseNotice.en}
         >
           <Content />
         </div>

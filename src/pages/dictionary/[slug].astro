@@ -5,6 +5,7 @@ import FluentIcon from '../../components/FluentIcon.astro';
 import { chapterLabel } from '../../lib/content-feed';
 import { chaptersMentioning } from '../../lib/lore';
 import { COPY_MAX_CHARS, isCopyProtected } from '../../lib/copy-protection';
+import { siteConfig } from '../../site.config';
 import { t as tr } from '../../lib/i18n';
 
 // Wiki entry pages are prerendered: the backlink index and the related-word list
@@ -84,7 +85,13 @@ const relatedEntries =
       )}
     </dl>
 
-    <div class="markdown-content" data-copy-protect={copyProtected ? 'true' : undefined} data-copy-max={COPY_MAX_CHARS}>
+    <div
+      class="markdown-content"
+      data-copy-protect={copyProtected ? 'true' : undefined}
+      data-copy-max={COPY_MAX_CHARS}
+      data-copy-license-zh={siteConfig.licenseNotice.zh}
+      data-copy-license-en={siteConfig.licenseNotice.en}
+    >
       <Content />
     </div>
 
