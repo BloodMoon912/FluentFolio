@@ -1,3 +1,5 @@
+import { siteConfig } from '../site.config';
+
 // Build-time site metadata shared across the site (mainly the About page).
 // These are static values baked at build time (see astro.config.mjs `define`),
 // since the Workers runtime has no git and limited process info.
@@ -16,7 +18,7 @@ declare global {
 export const SITE_STARTED_AT = __SITE_BUILD__.startedAt;
 
 export const SITE = {
-  domain: 'www.example.com',
+  domain: new URL(siteConfig.url).host,
   platform: 'Cloudflare Workers',
   startedAt: SITE_STARTED_AT,
   astroVersion: __SITE_BUILD__.astroVersion,

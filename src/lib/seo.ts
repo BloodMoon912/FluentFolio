@@ -32,7 +32,7 @@ export interface ArticleSeo {
 
 /** Site-wide identity shared by the WebSite, BlogPosting and Chapter nodes. */
 export interface SiteSeo {
-  /** Production origin, e.g. `https://www.example.com`. */
+  /** Production origin, e.g. `https://example.com`. */
   origin: string;
   /** JSON-LD `name` for the site itself. */
   name: string;

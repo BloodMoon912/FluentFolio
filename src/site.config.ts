@@ -30,6 +30,11 @@ export interface SiteConfig {
   url: string;
   /** Attribution line appended to copied excerpts, per language. */
   licenseNotice: { zh: string; en: string };
+  /** Titles and descriptions for the generated RSS/Atom feeds. */
+  feeds: {
+    blog: { title: string; description: string };
+    novel: { title: string; description: string };
+  };
   /** Desktop and mobile navigation, in display order. */
   nav: NavItem[];
 }
@@ -42,6 +47,10 @@ export const siteConfig: SiteConfig = {
   licenseNotice: {
     zh: '© 你的名字 版權所有，轉載請註明出處',
     en: '© Your Name. All rights reserved. Please credit the source when quoting.',
+  },
+  feeds: {
+    blog: { title: 'FluentFolio Blog', description: 'FluentFolio 的開發、設計與實驗筆記。' },
+    novel: { title: 'FluentFolio Novel', description: 'FluentFolio 的連載小說。' },
   },
   nav: [
     { href: '/', key: 'brand_home', exact: true },

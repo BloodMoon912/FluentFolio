@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { getCollection } from 'astro:content';
+import { siteConfig } from '../site.config';
 
 const escapeXml = (value: string) =>
   value
@@ -41,8 +42,8 @@ export const GET: APIRoute = async ({ site, url }) => {
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/">
   <channel>
-    <title>Your Name Blog</title>
-    <description>Your Name 的開發、遊戲、Windows、Cloudflare 與實驗筆記。</description>
+    <title>${escapeXml(siteConfig.feeds.blog.title)}</title>
+    <description>${escapeXml(siteConfig.feeds.blog.description)}</description>
     <link>${escapeXml(origin)}/posts</link>
     <atom:link xmlns:atom="http://www.w3.org/2005/Atom" href="${escapeXml(origin)}/rss.xml" rel="self" type="application/rss+xml" />
     <language>zh-Hant-TW</language>
