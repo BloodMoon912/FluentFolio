@@ -40,6 +40,8 @@ declare global {
     turnstile?: TurnstileApi;
     /** Set once markdown-enhance.js has bound its listeners. */
     __bmMarkdownEnhanceBound?: boolean;
+    /** Set once image-lightbox.js has bound its delegated listener. */
+    __bmImageLightboxBound?: boolean;
   }
 
   // `/api/status` payload, consumed by status-panel.js. Declared here rather

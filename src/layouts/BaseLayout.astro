@@ -434,6 +434,10 @@ const socialIcons: Record<string, string> = {
     <!-- Opted out of Swup's script re-run: the file binds its own swup listeners
          and a second run would only stack duplicates. -->
     <script is:inline data-swup-ignore-script src="/scripts/markdown-enhance.js" defer></script>
+    <!-- Click-to-zoom for article images. One delegated listener, so Swup
+         replacements need no re-binding; loaded once like the other shell
+         scripts. -->
+    <script is:inline data-swup-ignore-script src="/scripts/image-lightbox.js" defer></script>
     <!-- Copy guard for [data-copy-protect] bodies. A module script, loaded once
          for the whole site: it delegates from `document`, so Swup navigation
          keeps working without re-binding anything. -->
