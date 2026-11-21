@@ -13,6 +13,7 @@
 // The content repository is also the site's private overlay:
 //
 //   site.config.json          identity, nav, feeds, licence, branding paths
+//   i18n/ui.json              UI copy (optional; theme copy is the fallback)
 //   assets/brand/*            logo, favicon, icons, background video/audio
 //   assets/background.webp    still background used by the parallax layer
 //
@@ -155,6 +156,12 @@ function applyOverlay(sourceRoot, root, log) {
   if (existsSync(config)) {
     cpSync(config, join(root, 'site.config.json'));
     copied.push('site.config.json');
+  }
+
+  const copy = join(sourceRoot, 'i18n', 'ui.json');
+  if (existsSync(copy)) {
+    cpSync(copy, join(root, 'src', 'i18n', 'ui.json'));
+    copied.push('i18n/ui.json');
   }
 
   const brand = join(sourceRoot, 'assets', 'brand');

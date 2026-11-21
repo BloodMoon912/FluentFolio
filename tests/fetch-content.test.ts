@@ -194,6 +194,19 @@ describe('fetchContent', () => {
 
     assert.equal(readFileSync(join(root, 'site.config.json'), 'utf8'), '{"title":"Theme Default"}');
   });
+  it('--from also overlays the UI dictionary', () => {
+    const repo = makeContentRepo();
+    write(repo, 'i18n/ui.json', '{"zh":{"hello":"你好"},"en":{"hello":"Hello"}}');
+    const root = makeProject();
+    write(root, 'src/i18n/ui.json', '{"zh":{"hello":"Theme"},"en":{"hello":"Theme"}}');
+
+    fetchContent({ root, env: {}, from: repo });
+
+    assert.equal(
+      readFileSync(join(root, 'src/i18n/ui.json'), 'utf8'),
+      '{"zh":{"hello":"你好"},"en":{"hello":"Hello"}}',
+    );
+  });
   it('--from rejects a path that is not a content repository', () => {
     const root = makeProject();
     assert.throws(() => fetchContent({ root, env: {}, from: tempDir('bm-empty-') }), /does not exist/);
