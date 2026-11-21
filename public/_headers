@@ -1,0 +1,100 @@
+# Cloudflare (Workers Static Assets / Pages) reads this file to attach response
+# headers to matching paths. Astro copies everything under `public/` into the
+# build output as-is, so this file ends up at the root of `dist/`.
+#
+# SCOPE: this file is applied to **static asset** responses only. The
+# `assets.run_worker_first` exclusions in wrangler.jsonc hand `/_astro/*`,
+# `/background.mp4`, `/background.webm` and `/easter.mp3` straight to the asset
+# layer; every other path reaches the Worker first, and SSR pages are rendered
+# there. The /admin/* and /api/admin/* rules below never apply to a Worker
+# response — it is not filtered by this file. The security headers for SSR
+# responses live in src/middleware.ts instead. Keep the two in step: cache rules
+# belong here, anything that must cover a rendered page belongs there.
+#
+# Every static asset gets `nosniff`, the one security header a rendered page
+# cannot supply for its own subresources. src/middleware.ts sets the same value
+# on Worker responses, so the pair covers both halves of the site.
+#
+# Pages with `export const prerender = true` (the homepage, /privacy, /terms,
+# /404, the reading pages /posts/blog/* and /posts/novel/*, and the wiki detail
+# pages /dictionary/* and /world/*) are emitted as static HTML and served by the
+# ASSETS binding *before* src/middleware.ts runs, so their responses never see
+# the middleware security headers. They are deliberately **not** in the
+# run_worker_first exclusion list: excluding a document route is what caused the
+# PR #9 incident, where /posts, /about and /status became static 404s.
+#
+# The headers below therefore repeat the middleware values for static assets.
+# `/404.html` in particular is returned for *arbitrary* unmatched paths
+# (`assets.not_found_handling: "404-page"`), which a per-path rule could never
+# match, so `/*` is the only complete place for them.
+#
+# The CSP line is the already-enforced three-directive baseline from
+# src/middleware.ts (frame-ancestors / object-src / base-uri), copied here so
+# prerendered HTML keeps it. It is NOT the #14 candidate policy: that one is
+# still Report-Only and middleware-only, because a prerendered document is served
+# before middleware runs. The candidate policy no longer depends on a nonce —
+# every executable script is a same-origin file under /scripts/ — so the only
+# remaining gap for enforcement is delivering the full policy to prerendered
+# pages (see DEPLOY-CLOUDFLARE.md §14).
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: SAMEORIGIN
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: geolocation=(), microphone=(), camera=(), payment=(), usb=()
+  Content-Security-Policy: frame-ancestors 'self'; object-src 'none'; base-uri 'self'
+
+# Content-hashed build output (Astro fingerprints every filename, e.g.
+# `_astro/BaseLayout.Chst1KRV.css`) can be cached forever: if the content ever
+# changes, the filename changes with it, so there's no staleness risk.
+# /admin is also behind an app-level session cookie (see src/lib/admin-auth.ts)
+# and should additionally be placed behind Cloudflare Access — see
+# ADMIN-CMS-SETUP.md. These headers are defense-in-depth, not the auth boundary.
+/admin/*
+  X-Robots-Tag: noindex, nofollow
+  Cache-Control: no-store
+
+/api/admin/*
+  X-Robots-Tag: noindex, nofollow
+  Cache-Control: no-store
+
+/_astro/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Browser scripts under /scripts/ are NOT content-hashed: the filename is part of
+# the page markup and must stay stable, so `immutable` would pin a stale copy for
+# a year. Five minutes keeps a deploy visible quickly; after that every load
+# revalidates and gets a cheap 304 from the asset layer's ETag. `theme-init.js`
+# is parser-blocking in <head>, so a long cache would also delay theme fixes.
+/scripts/*
+  Cache-Control: public, max-age=300, must-revalidate
+
+# These are NOT content-hashed, so if you ever replace one of these files,
+# rename it (e.g. background-v2.mp4) and update the reference in the code —
+# otherwise visitors who already cached the old file under this exact name
+# won't see the new one for up to a year.
+/background.mp4
+  Cache-Control: public, max-age=31536000, immutable
+
+/background.webm
+  Cache-Control: public, max-age=31536000, immutable
+
+# The still background is imported from src/assets and emitted as a
+# content-hashed file under /_astro/, so it is covered by the immutable rule
+# above and needs no entry of its own here.
+/logo.svg
+  Cache-Control: public, max-age=31536000, immutable
+
+/favicon.svg
+  Cache-Control: public, max-age=31536000, immutable
+
+/icons/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/easter.mp3
+  Cache-Control: public, max-age=31536000, immutable
+
+# Prerendered at build time from the four content collections (blog, novel,
+# dictionary, world). It changes only when a new deploy ships, so a one-hour
+# cache is safe and keeps the search panel responsive.
+/search-index.json
+  Cache-Control: public, max-age=3600

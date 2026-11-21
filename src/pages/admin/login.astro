@@ -1,0 +1,390 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+export const prerender = false;
+---
+
+<AdminLayout title="管理員登入">
+  <main class="admin-login-shell">
+    <section class="admin-login-card" aria-labelledby="login-title">
+      <div class="admin-login-mark" aria-hidden="true">
+        <svg
+          viewBox="0 0 24 24"
+          width="30"
+          height="30"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.7"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M12 3 19 6v5c0 4.7-2.9 8.1-7 10-4.1-1.9-7-5.3-7-10V6l7-3Z" />
+          <path d="m9 12 2 2 4-4" />
+        </svg>
+      </div>
+      <p class="admin-login-eyebrow">PRIVATE WORKSPACE · ADMIN</p>
+      <h1 id="login-title">管理員登入</h1>
+      <p class="admin-login-description">優先使用 Passkey 驗證；未設定或無法使用時，可切換備用密碼。</p>
+
+      <div id="passkey-panel" class="admin-passkey-panel">
+        <label class="admin-login-label admin-passkey-account-label" for="passkey-username">
+          管理員帳戶
+        </label>
+        <input
+          id="passkey-username"
+          name="username"
+          type="text"
+          value="admin"
+          autocomplete="username webauthn"
+          spellcheck="false"
+          class="admin-login-input admin-passkey-account-input"
+          aria-describedby="passkey-account-hint"
+        />
+        <p id="passkey-account-hint" class="admin-login-hint admin-passkey-account-hint">
+          瀏覽器可在此欄位顯示已儲存的 Passkey；也可以直接按下方按鈕。
+        </p>
+        <button type="button" id="passkey-login-btn" class="admin-passkey-button">
+          <span class="admin-passkey-button__icon" aria-hidden="true">
+            <svg
+              viewBox="0 0 24 24"
+              width="22"
+              height="22"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M7.5 14.5a5.5 5.5 0 1 1 5.2 2.9V21h-3v-2h-2v-2h-2v-2.5Z" />
+              <circle cx="8.5" cy="8.5" r="1" />
+            </svg>
+          </span>
+          <span id="passkey-button-label">使用 Passkey 登入</span>
+          <span class="admin-passkey-button__arrow" aria-hidden="true">
+            →
+          </span>
+        </button>
+        <p class="admin-login-hint">使用 Face ID、Touch ID、Windows Hello 或安全金鑰</p>
+      </div>
+
+      <div class="admin-login-divider">
+        <span>或</span>
+      </div>
+      <button
+        type="button"
+        id="password-toggle"
+        class="admin-login-switch"
+        aria-expanded="false"
+        aria-controls="password-panel"
+      >
+        改用密碼登入
+      </button>
+
+      <form id="password-panel" class="admin-password-panel" hidden>
+        <label for="password" class="admin-login-label">
+          管理員密碼
+        </label>
+        <input
+          id="password"
+          name="password"
+          type="password"
+          autocomplete="current-password"
+          required
+          minlength="1"
+          class="admin-login-input"
+          placeholder="輸入管理員密碼"
+        />
+        <button type="submit" id="submit-btn" class="admin-password-button">
+          登入後台
+        </button>
+      </form>
+
+      <p id="error-message" class="admin-login-error" role="alert" aria-live="polite"></p>
+      <p id="login-status" class="admin-login-status" role="status" aria-live="polite">
+        正在檢查 Passkey 支援狀態…
+      </p>
+      <p class="admin-login-security-note">本頁受 Cloudflare Access 保護，登入後仍需通過網站帳戶驗證。</p>
+    </section>
+  </main>
+
+  <script>
+    type WebAuthnOptions = Record<string, any>;
+
+    const passkeyButton = document.getElementById('passkey-login-btn') as HTMLButtonElement;
+    const passkeyLabel = document.getElementById('passkey-button-label') as HTMLSpanElement;
+    const passwordToggle = document.getElementById('password-toggle') as HTMLButtonElement;
+    const passwordPanel = document.getElementById('password-panel') as HTMLFormElement;
+    const passwordInput = document.getElementById('password') as HTMLInputElement;
+    const submitButton = document.getElementById('submit-btn') as HTMLButtonElement;
+    const errorElement = document.getElementById('error-message') as HTMLParagraphElement;
+    const statusElement = document.getElementById('login-status') as HTMLParagraphElement;
+    const descriptionElement = document.querySelector('.admin-login-description') as HTMLParagraphElement;
+
+    let passwordFallbackAvailable = true;
+    let conditionalController: AbortController | null = null;
+    let preparedLoginOptions: {
+      data: { ok: true; configured: boolean; passwordFallbackAvailable: boolean; options?: WebAuthnOptions };
+      createdAt: number;
+    } | null = null;
+    let loginBusy = false;
+
+    function decodeBase64Url(value: string): Uint8Array<ArrayBuffer> {
+      const normalized = value.replace(/-/g, '+').replace(/_/g, '/');
+      const padded = normalized + '='.repeat((4 - (normalized.length % 4)) % 4);
+      const binary = atob(padded);
+      const bytes = new Uint8Array(binary.length);
+      for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
+      return bytes;
+    }
+
+    function encodeBase64Url(value: ArrayBuffer): string {
+      const bytes = new Uint8Array(value);
+      let binary = '';
+      for (const byte of bytes) binary += String.fromCharCode(byte);
+      return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+    }
+
+    function parseRequestOptions(options: WebAuthnOptions): PublicKeyCredentialRequestOptions {
+      return {
+        ...options,
+        challenge: decodeBase64Url(options.challenge),
+        allowCredentials: (options.allowCredentials ?? []).map((item: any) => ({
+          ...item,
+          id: decodeBase64Url(item.id),
+        })),
+      };
+    }
+
+    function serializeAssertion(credential: PublicKeyCredential): Record<string, any> {
+      const response = credential.response as AuthenticatorAssertionResponse;
+      return {
+        id: credential.id,
+        rawId: encodeBase64Url(credential.rawId),
+        type: credential.type,
+        authenticatorAttachment: credential.authenticatorAttachment,
+        response: {
+          clientDataJSON: encodeBase64Url(response.clientDataJSON),
+          authenticatorData: encodeBase64Url(response.authenticatorData),
+          signature: encodeBase64Url(response.signature),
+          userHandle: response.userHandle ? encodeBase64Url(response.userHandle) : null,
+        },
+        clientExtensionResults: credential.getClientExtensionResults(),
+      };
+    }
+
+    function setError(message: string) {
+      errorElement.textContent = message;
+      if (message && passwordFallbackAvailable) {
+        passwordPanel.hidden = false;
+        passwordToggle.hidden = false;
+        passwordToggle.setAttribute('aria-expanded', 'true');
+        passwordToggle.textContent = '收起密碼登入';
+      }
+    }
+
+    async function fetchLoginOptions() {
+      const response = await fetch('/api/admin/passkey/login-options', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: '{}',
+        credentials: 'same-origin',
+        cache: 'no-store',
+      });
+      const data = await response.json();
+      if (typeof data.passwordFallbackAvailable === 'boolean') {
+        passwordFallbackAvailable = data.passwordFallbackAvailable;
+        if (!passwordFallbackAvailable) {
+          passwordToggle.hidden = true;
+          descriptionElement.textContent = '此管理帳戶目前只允許使用已登記的 Passkey。';
+        }
+      }
+      if (!response.ok || !data.ok) throw new Error(data.error || '無法取得 Passkey 驗證選項。');
+      const parsed = data as {
+        ok: true;
+        configured: boolean;
+        passwordFallbackAvailable: boolean;
+        options?: WebAuthnOptions;
+      };
+      preparedLoginOptions = { data: parsed, createdAt: Date.now() };
+      return parsed;
+    }
+
+    async function verifyPasskey(credential: PublicKeyCredential) {
+      // The server consumes the challenge exactly once; discard it even if the
+      // network response is lost so a retry always requests a fresh challenge.
+      preparedLoginOptions = null;
+      const response = await fetch('/api/admin/passkey/login-verify', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ credential: serializeAssertion(credential) }),
+        credentials: 'same-origin',
+        cache: 'no-store',
+      });
+      const data = await response.json();
+      if (!response.ok || !data.ok) throw new Error(data.error || 'Passkey 驗證失敗。');
+      window.location.replace('/admin');
+    }
+
+    async function runPasskeyLogin(automatic = false) {
+      if (loginBusy) return;
+      if (!('PublicKeyCredential' in window) || !navigator.credentials?.get) {
+        statusElement.textContent = '此瀏覽器不支援 Passkey，請改用密碼登入。';
+        passwordPanel.hidden = false;
+        passwordToggle.setAttribute('aria-expanded', 'true');
+        return;
+      }
+
+      loginBusy = true;
+      passkeyButton.disabled = true;
+      passkeyLabel.textContent = '等待裝置驗證…';
+      errorElement.textContent = '';
+      try {
+        const cached =
+          preparedLoginOptions && Date.now() - preparedLoginOptions.createdAt < 4 * 60 * 1000
+            ? preparedLoginOptions.data
+            : null;
+        const data = cached ?? (await fetchLoginOptions());
+        passwordFallbackAvailable = data.passwordFallbackAvailable;
+        if (!passwordFallbackAvailable) passwordToggle.hidden = true;
+        if (!data.configured || !data.options) {
+          statusElement.textContent = data.passwordFallbackAvailable
+            ? '尚未登記 Passkey，請先使用密碼登入，再於後台設定 Passkey。'
+            : '尚未登記 Passkey，而且未啟用備用密碼。請聯絡網站管理員。';
+          if (passwordFallbackAvailable) {
+            passwordPanel.hidden = false;
+            passwordToggle.hidden = false;
+            passwordToggle.setAttribute('aria-expanded', 'true');
+            passwordToggle.textContent = '收起密碼登入';
+          } else {
+            passwordToggle.hidden = true;
+          }
+          return;
+        }
+
+        const credential = await navigator.credentials.get({
+          publicKey: parseRequestOptions(data.options),
+          ...(automatic
+            ? {
+                mediation: 'conditional' as CredentialMediationRequirement,
+                signal: (conditionalController = new AbortController()).signal,
+              }
+            : {}),
+        } as CredentialRequestOptions);
+
+        if (!credential) return;
+        await verifyPasskey(credential as PublicKeyCredential);
+      } catch (error) {
+        const errorName = error instanceof Error ? error.name : '';
+        if (errorName === 'AbortError' && automatic) return;
+        const detail = error instanceof Error ? error.message : 'Passkey 驗證失敗。';
+        if (!automatic || (errorName !== 'NotAllowedError' && errorName !== 'AbortError')) {
+          setError(`${detail} 你可以改用密碼登入。`);
+        }
+      } finally {
+        loginBusy = false;
+        passkeyButton.disabled = false;
+        passkeyLabel.textContent = '使用 Passkey 登入';
+      }
+    }
+
+    passkeyButton.addEventListener('click', async () => {
+      conditionalController?.abort();
+      conditionalController = null;
+      await runPasskeyLogin(false);
+    });
+
+    passwordToggle.addEventListener('click', () => {
+      const expanded = passwordPanel.hidden;
+      if (expanded) {
+        conditionalController?.abort();
+        conditionalController = null;
+      }
+      passwordPanel.hidden = !expanded;
+      passwordToggle.setAttribute('aria-expanded', String(expanded));
+      passwordToggle.textContent = expanded ? '收起密碼登入' : '改用密碼登入';
+      if (expanded) passwordInput.focus();
+    });
+
+    passwordPanel.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      if (!passwordInput.value) {
+        passwordInput.focus();
+        return;
+      }
+      errorElement.textContent = '';
+      submitButton.disabled = true;
+      submitButton.textContent = '登入中…';
+      try {
+        const response = await fetch('/api/admin/login', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ password: passwordInput.value }),
+          credentials: 'same-origin',
+          cache: 'no-store',
+        });
+        const data = await response.json();
+        if (!response.ok || !data.ok) {
+          setError(data.error || '登入失敗，請再試一次。');
+          return;
+        }
+        window.location.replace('/admin');
+      } catch {
+        setError('網路錯誤，請再試一次。');
+      } finally {
+        submitButton.disabled = false;
+        submitButton.textContent = '登入後台';
+      }
+    });
+
+    async function initialisePasskey() {
+      passkeyButton.disabled = true;
+      try {
+        const data = await fetchLoginOptions();
+        passkeyButton.disabled = false;
+        passwordFallbackAvailable = data.passwordFallbackAvailable;
+        if (!passwordFallbackAvailable) passwordToggle.hidden = true;
+        if (!data.configured) {
+          statusElement.textContent = data.passwordFallbackAvailable
+            ? '尚未登記 Passkey。首次登入請使用密碼，然後在後台新增通行密鑰。'
+            : '尚未登記 Passkey，而且未啟用備用密碼。請聯絡網站管理員。';
+          if (passwordFallbackAvailable) {
+            passwordPanel.hidden = false;
+            passwordToggle.hidden = false;
+            passwordToggle.setAttribute('aria-expanded', 'true');
+            passwordToggle.textContent = '收起密碼登入';
+          } else {
+            passwordToggle.hidden = true;
+          }
+          return;
+        }
+
+        statusElement.textContent = '已準備好 Passkey。可在帳戶欄位選擇已儲存的通行密鑰，或點擊上方按鈕。';
+        const conditionalAvailable =
+          typeof PublicKeyCredential.isConditionalMediationAvailable === 'function'
+            ? await PublicKeyCredential.isConditionalMediationAvailable().catch(() => false)
+            : false;
+        if (conditionalAvailable) {
+          // Conditional mediation is started on page load; browsers surface the
+          // native passkey picker when their conditional UI is available.
+          conditionalController = new AbortController();
+          const credential = await navigator.credentials.get({
+            publicKey: parseRequestOptions(data.options!),
+            mediation: 'conditional',
+            signal: conditionalController.signal,
+          } as CredentialRequestOptions);
+          if (credential) await verifyPasskey(credential as PublicKeyCredential);
+        }
+      } catch (error) {
+        passkeyButton.disabled = false;
+        const errorName = error instanceof Error ? error.name : '';
+        if (errorName !== 'NotAllowedError' && errorName !== 'AbortError') {
+          statusElement.textContent = passwordFallbackAvailable
+            ? 'Passkey 暫時無法使用，仍可改用密碼登入。'
+            : 'Passkey 暫時無法使用，請稍後重試。';
+          if (!passwordFallbackAvailable) passwordToggle.hidden = true;
+        }
+      }
+    }
+
+    void initialisePasskey();
+  </script>
+</AdminLayout>

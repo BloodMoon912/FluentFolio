@@ -1,0 +1,29 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { t as tr } from '../lib/i18n';
+
+// Prerendered at build time: a 404 page has no request-scoped data, and the
+// adapter serves this file through the ASSETS binding for unmatched routes
+// (wrangler.jsonc `assets.not_found_handling: "404-page"`) instead of rendering
+// it in the Worker on every miss. Its security headers must therefore come from
+// public/_headers, because middleware does not run for static assets.
+export const prerender = true;
+---
+
+<BaseLayout titleKey="title_404" description={tr('zh', 'not_found_title')}>
+  <section class="error-page">
+    <div>
+      <div class="error-code">404</div>
+      <h1 data-i18n="not_found_title">{tr('zh', 'not_found_title')}</h1>
+      <p data-i18n="not_found_lead">{tr('zh', 'not_found_lead')}</p>
+      <div class="actions" style="justify-content:center">
+        <a class="btn primary" href="/" data-i18n="back_home">
+          {tr('zh', 'back_home')}
+        </a>
+        <a class="btn" href="/posts" data-i18n="read_blog">
+          {tr('zh', 'read_blog')}
+        </a>
+      </div>
+    </div>
+  </section>
+</BaseLayout>

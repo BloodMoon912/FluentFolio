@@ -1,0 +1,22 @@
+/* Style entry point.
+ *
+ * These layers were split out of the former single global.css at comment-line
+ * boundaries, and the split was verified byte-identical by concatenating the
+ * parts. They are imported in source order and Vite inlines them at build time,
+ * so the cascade is exactly the order the rules had before the split.
+ *
+ * reading.css is appended last on purpose: it overrides the generic
+ * `.markdown-content` typography from shell.css with the scoped (`.post-page` /
+ * `.novel-page`) reading-page rules.
+ *
+ * search.css is after even that: the mobile menu renders search-result anchors
+ * inside its own anchor list, so those rows need to win against `.mobile-menu a`.
+ */
+@import './tokens.css';
+@import './shell.css';
+@import './panels.css';
+@import './presence.css';
+@import './content.css';
+@import './lore.css';
+@import './reading.css';
+@import './search.css';

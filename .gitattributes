@@ -1,0 +1,13 @@
+# Normalise every text file to LF in the repository and in the working tree.
+# Windows checkouts default to CRLF (core.autocrlf=true), which made
+# `npm run format:check` fail even when the committed content was unchanged.
+* text=auto eol=lf
+
+# Binary assets: never apply text normalisation, so renormalising cannot touch
+# their bytes.
+*.mp4 binary
+*.webm binary
+*.mp3 binary
+*.png binary
+*.webp binary
+*.ttf binary

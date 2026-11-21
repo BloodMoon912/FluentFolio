@@ -1,0 +1,38 @@
+name: Rebuild site on content change
+
+# Every push to main (an admin CMS save, or a manual commit) asks Cloudflare
+# Workers Builds to build and deploy the site, which fetches this repository
+# during `npm run build`.
+#
+# The deploy hook URL is the only credential here. It can do one thing: start a
+# build of the site's production branch. Keep it in the repository secret
+# SITE_DEPLOY_HOOK_URL, and never run scripts from this repository in this
+# workflow, because the admin CMS token can write files here.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions: {}
+
+# Several quick saves become one queued build instead of a pile of them.
+concurrency:
+  group: trigger-site-build
+  cancel-in-progress: true
+
+jobs:
+  trigger:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Ask Workers Builds to rebuild
+        env:
+          HOOK: ${{ secrets.SITE_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -z "$HOOK" ]; then
+            echo "SITE_DEPLOY_HOOK_URL is not set; the site will not rebuild." >&2
+            exit 1
+          fi
+          curl --fail --silent --show-error --max-time 30 --retry 3 -X POST "$HOOK" > /dev/null
+          echo "Build requested."

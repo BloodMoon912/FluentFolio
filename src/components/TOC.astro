@@ -1,0 +1,58 @@
+---
+// Table of contents with scroll-spy highlighting, plus the heading permalink
+// anchors for the reading page.
+//
+// Headings come from Astro's render() result (`const { Content, headings } =
+// await render(entry)`), so the TOC and the anchors are generated from the same
+// tree and can never disagree. Only h2/h3 are listed by default.
+//
+// Both behaviours live in /scripts/toc.js (served verbatim from public/) so
+// Swup can re-run it after replacing <main>, which is what re-measures the new
+// page. Listeners are bound once (window/module guards) so repeated navigations
+// cannot stack handlers, while the idempotent decoration/update functions still
+// run on every navigation.
+
+import { DEFAULT_LANG, t as tr } from '../lib/i18n';
+import FluentIcon from './FluentIcon.astro';
+
+export interface TocHeading {
+  depth: number;
+  slug: string;
+  text: string;
+}
+
+interface Props {
+  headings: TocHeading[];
+  label?: string;
+  minDepth?: number;
+  maxDepth?: number;
+}
+
+const { headings, label = tr(DEFAULT_LANG, 'toc_label'), minDepth = 2, maxDepth = 3 } = Astro.props;
+const items = headings.filter((heading) => heading.depth >= minDepth && heading.depth <= maxDepth);
+---
+
+{items.length > 1 && (
+  <nav class="post-toc" aria-label={label} data-post-toc>
+    <button class="post-toc__toggle" type="button" aria-expanded="false" aria-controls="post-toc-list" data-toc-toggle>
+      <span class="post-toc__toggle-label" data-i18n="toc_label">
+        {label}
+      </span>
+      <FluentIcon name="chevron-down" size={18} class="post-toc__chevron" />
+    </button>
+    <div class="post-toc__title" id="post-toc-title" data-i18n="toc_label">
+      {label}
+    </div>
+    <ol class="post-toc__list" id="post-toc-list">
+      {items.map((heading) => (
+        <li class:list={['post-toc__item', `post-toc__item--h${heading.depth}`]}>
+          <a href={`#${heading.slug}`} data-toc-link={heading.slug}>
+            {heading.text}
+          </a>
+        </li>
+      ))}
+    </ol>
+  </nav>
+)}
+
+<script is:inline src="/scripts/toc.js"></script>

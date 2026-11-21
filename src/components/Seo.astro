@@ -1,0 +1,72 @@
+---
+/**
+ * The `<head>` metadata block: Open Graph, Twitter card, article timestamps and
+ * schema.org JSON-LD.
+ *
+ * It is a component (rather than markup inlined in `BaseLayout.astro`) so the
+ * layout frontmatter stays about data resolution: the layout works out what the
+ * page *is* and hands plain values to this file, which decides how they are
+ * serialised into meta elements.
+ */
+import { serializeJsonLd, type ArticleSeo } from '../lib/seo';
+
+interface Props {
+  /** Fully resolved page title (already includes the site suffix when used). */
+  title: string;
+  description: string;
+  canonicalUrl: string;
+  ogImageUrl: string;
+  /** `og:site_name` — the short site identity, not the full JSON-LD name. */
+  siteName: string;
+  ogType?: string;
+  ogImageAlt?: string;
+  ogLocale?: string;
+  /** Present only on reading pages; drives the `article:*` elements. */
+  article?: ArticleSeo | null;
+  /** schema.org nodes to serialise as `<script type="application/ld+json">`. */
+  jsonLd?: Record<string, unknown>[];
+}
+
+const {
+  title,
+  description,
+  canonicalUrl,
+  ogImageUrl,
+  siteName,
+  ogType = 'website',
+  ogImageAlt = title,
+  ogLocale = 'zh_TW',
+  article = null,
+  jsonLd = [],
+} = Astro.props;
+---
+
+<meta property="og:type" content={ogType} />
+<meta property="og:site_name" content={siteName} />
+<meta property="og:title" content={title} />
+<meta property="og:description" content={description} />
+<meta property="og:url" content={canonicalUrl} />
+<meta property="og:image" content={ogImageUrl} />
+<meta property="og:image:type" content="image/png" />
+<meta property="og:image:alt" content={ogImageAlt} />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:locale" content={ogLocale} />
+
+{article?.publishedTime && <meta property="article:published_time" content={article.publishedTime} />}
+{article?.modifiedTime && <meta property="article:modified_time" content={article.modifiedTime} />}
+{article?.author && <meta property="article:author" content={article.author} />}
+{article?.section && <meta property="article:section" content={article.section} />}
+{(article?.tags ?? []).map((tag) => (
+  <meta property="article:tag" content={tag} />
+))}
+
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content={title} />
+<meta name="twitter:description" content={description} />
+<meta name="twitter:image" content={ogImageUrl} />
+<meta name="twitter:image:alt" content={ogImageAlt} />
+
+{jsonLd.map((node) => (
+  <script is:inline type="application/ld+json" set:html={serializeJsonLd(node)} />
+))}

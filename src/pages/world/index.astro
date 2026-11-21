@@ -1,0 +1,59 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import SiteSearch from '../../components/SiteSearch.astro';
+import FluentIcon from '../../components/FluentIcon.astro';
+import { t as tr } from '../../lib/i18n';
+
+const entries = (await getCollection('world', ({ data }) => !data.draft)).sort((a, b) =>
+  a.data.title.localeCompare(b.data.title, 'zh-Hant'),
+);
+---
+
+<BaseLayout titleKey="title_world" description={tr('zh', 'world_lead')}>
+  <section class="page">
+    <div class="blog-heading">
+      <div>
+        <div class="eyebrow">{tr('zh', 'world_eyebrow')}</div>
+        <h1 class="page-title">{tr('zh', 'world_page_title')}</h1>
+        <p class="lead">{tr('zh', 'world_lead')}</p>
+      </div>
+    </div>
+
+    <p class="content-count">{tr('zh', 'world_count', String(entries.length))}</p>
+
+    <!-- Same component/engine as the topbar, locked to the world collection,
+         and kept outside the empty branch. -->
+    <SiteSearch
+      id="world-search"
+      variant="inline"
+      lockedKind="world"
+      placeholderKey="search_world_placeholder"
+      filterList="#world-list"
+      syncQuery
+    />
+
+    {entries.length === 0 ? (
+      <article class="card blog-preview empty-state">
+        <h2>{tr('zh', 'world_empty')}</h2>
+      </article>
+    ) : (
+      <div id="world-list" class="wiki-grid" data-filter-list>
+        {entries.map((entry) => (
+          <a class="wiki-card" href={`/world/${entry.id}`} data-entry-id={entry.id}>
+            <span class="wiki-card__title">{entry.data.title}</span>
+            <span class="wiki-card__desc">{entry.data.description}</span>
+            <span class="wiki-card__meta">{entry.data.type}</span>
+          </a>
+        ))}
+      </div>
+    )}
+
+    <div class="actions" style="margin-top:32px">
+      <a class="btn" href="/dictionary">
+        {tr('zh', 'title_dictionary')}
+        <FluentIcon name="arrow-right" size={16} />
+      </a>
+    </div>
+  </section>
+</BaseLayout>

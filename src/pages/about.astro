@@ -1,0 +1,157 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { t as tr } from '../lib/i18n';
+import { SITE, runtimeSince } from '../lib/site';
+import { formatHKTDateTime } from '../lib/time';
+import { getContentStats } from '../lib/site-stats';
+import { aboutGames as games, aboutSetup as setup, profile } from '../lib/data';
+import FluentIcon from '../components/FluentIcon.astro';
+import { env } from 'cloudflare:workers';
+
+// Content totals are computed once per Worker isolate (and only change on a
+// deploy), instead of rescanning every post body on each SSR request.
+const contentStats = await getContentStats();
+const categories = contentStats.categories;
+const tags = contentStats.tags;
+const wordCount = contentStats.wordCount;
+// The Git/build timestamp is only a fallback. Production uses the persistent
+// D1 activity row created by the initial migration so redeployments do not
+// reset the site's runtime counter to zero.
+let runtimeStartedAt = SITE.startedAt;
+try {
+  if (env.DB) {
+    const row = await env.DB.prepare('SELECT started_at FROM activity WHERE id = 1').first<{
+      started_at: number | string | null;
+    }>();
+    if (row?.started_at != null) {
+      const value = Number(row.started_at);
+      if (Number.isFinite(value) && value > 0) runtimeStartedAt = new Date(value).toISOString();
+    }
+  }
+} catch {
+  // Fall back to the build/Git timestamp when D1 is unavailable (e.g. plain Astro dev).
+}
+const runtime = runtimeSince(runtimeStartedAt);
+
+const stats = [
+  { key: 'stat_posts', value: String(contentStats.postCount) },
+  { key: 'stat_categories', value: String(categories) },
+  { key: 'stat_tags', value: String(tags) },
+  { key: 'stat_words', value: wordCount.toLocaleString() },
+  { key: 'stat_days', value: tr('zh', 'days', String(runtime.days), String(runtime.hours)) },
+];
+
+const info = [
+  { key: 'info_platform', value: SITE.platform },
+  { key: 'info_version', value: `Astro ${SITE.astroVersion}` },
+  { key: 'info_domain', value: SITE.domain },
+  { key: 'info_build_time', value: formatHKTDateTime(SITE.buildTime) },
+  { key: 'info_runtime', value: `Node ${SITE.nodeVersion?.replace(/^v/, '')} · TypeScript ${SITE.typescriptVersion}` },
+];
+---
+
+<BaseLayout titleKey="title_about" description={tr('zh', 'about_lead')}>
+  <section class="hero about-page">
+    <div class="hero-main about-hero-main">
+      <div class="eyebrow">ABOUT</div>
+      <h1>{profile.nameEn}</h1>
+      <p class="lead" data-i18n="about_lead">
+        {tr('zh', 'about_lead')}
+      </p>
+      <div class="actions">
+        <a class="btn" href="/" data-i18n="back_home">
+          {tr('zh', 'back_home')}
+        </a>
+        <a class="btn" href="/status" data-i18n="view_status">
+          {tr('zh', 'view_status')}
+        </a>
+      </div>
+
+      <div class="about-hero-content">
+        <section class="about-content-section">
+          <div class="about-section-heading">
+            <div>
+              <div class="eyebrow" data-i18n="setup_eyebrow">
+                {tr('zh', 'setup_eyebrow')}
+              </div>
+              <h2 data-i18n="setup">{tr('zh', 'setup')}</h2>
+            </div>
+            <span class="about-section-note" data-i18n="setup_note">
+              {tr('zh', 'setup_note')}
+            </span>
+          </div>
+          <div class="about-rows">
+            {setup.map((row) => (
+              <div class="about-row">
+                <span data-i18n={row.key}>{tr('zh', row.key)}</span>
+                <strong>{row.value}</strong>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section class="about-content-section">
+          <div class="about-section-heading">
+            <div>
+              <div class="eyebrow" data-i18n="gaming_eyebrow">
+                {tr('zh', 'gaming_eyebrow')}
+              </div>
+              <h2 data-i18n="gaming">{tr('zh', 'gaming')}</h2>
+            </div>
+          </div>
+          <div class="about-games">
+            {games.map((game) => (
+              <a class="about-game" href={game.url} target="_blank" rel="noopener noreferrer">
+                <span>{game.name}</span>
+                <FluentIcon name="arrow-up-right" size={16} class="about-game-arrow" />
+              </a>
+            ))}
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <div class="about-panels">
+      <div class="card about-card">
+        <h2 data-i18n="site_stats">{tr('zh', 'site_stats')}</h2>
+        <div class="about-rows">
+          {stats.map((row) => (
+            <div class="about-row">
+              <span data-i18n={row.key}>{tr('zh', row.key)}</span>
+              <strong
+                data-i18n={row.key === 'stat_days' ? 'days' : undefined}
+                data-i18n-args={row.key === 'stat_days' ? `${runtime.days}|${runtime.hours}` : undefined}
+              >
+                {row.value}
+              </strong>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div class="card about-card">
+        <h2 data-i18n="site_info">{tr('zh', 'site_info')}</h2>
+        <div class="about-rows">
+          {info.map((row) => (
+            <div class="about-row">
+              <span data-i18n={row.key}>{tr('zh', row.key)}</span>
+              <strong>{row.value}</strong>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div class="card about-card">
+        <h2 data-i18n="contact">{tr('zh', 'contact')}</h2>
+        <div class="about-rows">
+          <div class="about-row">
+            <span data-i18n="contact_email">{tr('zh', 'contact_email')}</span>
+            <strong>
+              <a href="mailto:contact@example.com">contact@example.com</a>
+            </strong>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</BaseLayout>

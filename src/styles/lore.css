@@ -1,0 +1,99 @@
+/* Lore links: an inline dictionary word and its zero-API tooltip popover.
+ *
+ * The definition is already in the page (data-tooltip), so the popover is a
+ * pure paint job — no network, no spinner, no loading state.
+ *
+ * Imported by global.css after content.css and before reading.css. The older
+ * duplicate lore block in content.css was removed, so this is the only source.
+ */
+
+.lore-word {
+  padding: 0 1px;
+  border-bottom: 1px dashed color-mix(in srgb, var(--accent-2) 55%, transparent);
+  border-radius: 3px;
+  color: var(--accent-2);
+  cursor: help;
+  transition:
+    background var(--fluent-duration-fast) var(--fluent-ease-standard),
+    border-color var(--fluent-duration-fast) var(--fluent-ease-standard);
+}
+
+.lore-word:hover,
+.lore-word:focus-visible {
+  background: color-mix(in srgb, var(--accent-2) 14%, transparent);
+  border-bottom-color: var(--accent-2);
+  outline: none;
+}
+
+/* Undefined word: still a marker, but nothing to show and nothing to promise. */
+.lore-word[data-lore-missing] {
+  border-bottom-style: dotted;
+  border-bottom-color: var(--line);
+  color: var(--muted);
+  cursor: default;
+}
+
+.lore-word[data-lore-missing]:hover,
+.lore-word[data-lore-missing]:focus-visible {
+  background: transparent;
+  border-bottom-color: var(--line);
+}
+
+.lore-popover {
+  position: absolute;
+  z-index: calc(var(--fluent-layer-sticky) + 20);
+  max-width: min(360px, calc(100vw - 24px));
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--accent-2) 22%, var(--line));
+  border-radius: var(--radius-popover);
+  background: color-mix(in srgb, var(--surface-solid) 74%, transparent);
+  -webkit-backdrop-filter: blur(var(--glass-blur-field)) saturate(150%);
+  backdrop-filter: blur(var(--glass-blur-field)) saturate(150%);
+  box-shadow:
+    var(--shadow-popover),
+    inset 0 1px 0 rgb(255 255 255 / 0.06);
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.6;
+  pointer-events: none;
+  animation: lore-popover-in var(--fluent-duration-fast) var(--fluent-ease-decelerate) both;
+}
+
+.lore-popover[hidden] {
+  display: none;
+}
+
+.lore-popover[data-side='above'] {
+  transform-origin: bottom left;
+  animation-name: lore-popover-in-above;
+}
+
+.lore-popover[data-side='below'] {
+  transform-origin: top left;
+}
+
+.lore-popover__definition {
+  margin: 0;
+}
+
+@keyframes lore-popover-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes lore-popover-in-above {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}

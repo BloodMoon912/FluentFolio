@@ -1,0 +1,492 @@
+/* Search UI.
+ *
+ * Owns `.site-search` — src/components/SiteSearch.astro, the whole-site Fuse.js
+ * search that lives in the topbar, in the mobile menu and inline on /posts,
+ * /dictionary and /world (dropdown panel, keyboard navigable).
+ *
+ * Loaded last from global.css. That position is deliberate twice over: the
+ * glass tokens from tokens.css have to exist, and the mobile-menu rules from
+ * shell.css/pannels.css (` .mobile-menu a { … } `) are overridden below with
+ * matching specificity — the menu renders the search results inside its own
+ * anchor list, so the generic anchor styles must not leak onto result rows.
+ */
+
+/* ---------- shared glass field ---------- */
+.site-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+/* Keep the native hidden attribute authoritative if a search panel is hidden
+ * by a future contextual state. */
+.site-search[hidden] {
+  display: none !important;
+}
+
+.site-search__field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  background: color-mix(in srgb, var(--surface) 72%, transparent);
+  backdrop-filter: blur(var(--glass-blur-field)) saturate(var(--glass-saturate));
+  transition:
+    border-color var(--fluent-duration-fast) var(--fluent-ease-standard),
+    background-color var(--fluent-duration-fast) var(--fluent-ease-standard),
+    box-shadow var(--fluent-duration-fast) var(--fluent-ease-standard);
+}
+
+.site-search__field {
+  width: 100%;
+  height: 36px;
+  padding: 0 8px;
+  column-gap: 0;
+}
+
+.site-search__field:hover {
+  background: color-mix(in srgb, var(--surface) 85%, transparent);
+}
+
+.site-search__field:focus-within {
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--line));
+  box-shadow: 0 0 0 2px var(--accent-ring);
+  background: color-mix(in srgb, var(--surface-solid) 84%, transparent);
+}
+
+.site-search__icon {
+  flex: none;
+  opacity: 0.62;
+}
+
+/* Left icon and right `/` hint use the same fixed box, so the input's text area
+ * is inset by exactly the same amount on both sides. */
+.site-search__icon {
+  width: 18px;
+  height: 18px;
+  margin-right: 6px;
+}
+
+.site-search__input {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.2;
+  padding: 0 6px;
+  text-overflow: ellipsis;
+}
+
+.site-search__input::placeholder {
+  color: var(--subtle);
+}
+
+/* The native ✕ overlaps the glass edge; Esc / the clear button are the
+ * documented ways out. */
+.site-search__input::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.site-search__kbd {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  margin-left: 6px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  color: var(--subtle);
+  font-family: inherit;
+  font-size: 10px;
+  line-height: 1;
+  opacity: 0.85;
+  transition: opacity var(--fluent-duration-fast) var(--fluent-ease-standard);
+}
+
+/* The hint has done its job once the field has focus. */
+.site-search:focus-within .site-search__kbd {
+  opacity: 0;
+}
+
+/* ---------- result panel ---------- */
+.site-search__panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: var(--fluent-layer-dropdown);
+  display: flex;
+  flex-direction: column;
+  width: min(26rem, calc(100vw - 32px));
+  max-height: min(60vh, 30rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-popover);
+  background: color-mix(in srgb, var(--surface-solid) 88%, transparent);
+  backdrop-filter: blur(var(--glass-blur-popover)) saturate(var(--glass-saturate));
+  box-shadow: var(--shadow-popover);
+}
+
+/* `.site-search__panel` sets its own `display`, which would beat the UA rule for
+ * the `hidden` attribute, so hide it explicitly. Same for the rows below. */
+.site-search__panel[hidden],
+.site-search__hint[hidden],
+.site-search__empty[hidden],
+.site-search__status[hidden] {
+  display: none;
+}
+
+/* Type filter row inside the result panel (topbar / menu only). */
+.site-search__filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 2px 2px 8px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid var(--line);
+}
+
+.site-search__filter {
+  padding: 4px 10px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 11.5px;
+  cursor: pointer;
+  transition:
+    background var(--fluent-duration-fast) var(--fluent-ease-standard),
+    color var(--fluent-duration-fast) var(--fluent-ease-standard),
+    border-color var(--fluent-duration-fast) var(--fluent-ease-standard);
+}
+
+.site-search__filter:hover {
+  color: var(--text);
+  background: color-mix(in srgb, var(--surface-hover) 45%, transparent);
+}
+
+.site-search__filter.is-active {
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
+}
+
+.site-search__filter:focus-visible {
+  outline: 2px solid var(--accent-ring);
+  outline-offset: 1px;
+}
+
+.site-search__group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.site-search__group + .site-search__group {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--line);
+}
+
+.site-search__group-head {
+  margin: 4px 8px 2px;
+  color: var(--subtle);
+  font-size: 10.5px;
+  font-weight: 720;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.site-search__item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px 8px;
+  padding: 9px 10px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-control);
+  color: var(--text);
+  text-decoration: none;
+  transition:
+    background-color var(--fluent-duration-fast) var(--fluent-ease-standard),
+    border-color var(--fluent-duration-fast) var(--fluent-ease-standard);
+}
+
+.site-search__item:hover,
+.site-search__item.is-active {
+  background: var(--surface-hover);
+  border-color: var(--line);
+}
+
+.site-search__item-title {
+  grid-column: 1;
+  grid-row: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 13.5px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.site-search__item-kind {
+  grid-column: 2;
+  grid-row: 1;
+  align-self: center;
+  color: var(--subtle);
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.site-search__item-desc {
+  display: -webkit-box;
+  grid-column: 1 / -1;
+  grid-row: 2;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.site-search__hint,
+.site-search__status {
+  display: block;
+  min-height: 1.5em;
+  margin: 6px 8px 8px;
+  padding: 0;
+  color: var(--subtle);
+  font-size: 11.5px;
+  font-weight: 400;
+  line-height: 1.5;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.site-search__status {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.site-search__tag-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  align-self: flex-start;
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.site-search__tag-filter select {
+  min-width: 150px;
+  max-width: min(260px, calc(100vw - 100px));
+  height: 34px;
+  padding: 0 30px 0 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  background: color-mix(in srgb, var(--surface) 78%, transparent);
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+}
+
+.site-search__empty {
+  margin: 14px 8px 10px;
+  color: var(--muted);
+  font-size: 12.5px;
+  text-align: center;
+}
+
+/* Inline search hides rows in the page's own list; this line explains an empty
+ * result set once the dropdown panel is closed. */
+.site-search__inline-empty {
+  grid-column: 1 / -1;
+  margin: 20px 0;
+  color: var(--muted);
+  font-size: 13px;
+  text-align: center;
+}
+
+/* ---------- topbar placement ---------- */
+/* The field is a direct child of `.topbar`, between the left cluster and the
+ * actions. Auto margins centre it in the free space; `min-width: 0` lets the
+ * flex item shrink instead of squeezing the buttons. */
+.site-search[data-variant='topbar'] {
+  width: clamp(180px, 18vw, 240px);
+  min-width: 0;
+  /* Sit directly before the action cluster instead of centring in all the free
+   * space; the old auto margins left a large gap before the online chip. */
+  margin-left: auto;
+  margin-right: 0;
+}
+
+/* Narrow desktops keep a fixed floor instead of collapsing the field to a
+ * sliver. Below 1000px the topbar collapses (see "topbar collapse" at the end of
+ * this file) and the mobile menu owns search. */
+@media (max-width: 1100px) {
+  .site-search[data-variant='topbar'] {
+    width: 168px;
+  }
+}
+
+/* ---------- mobile-menu placement ---------- */
+.site-search[data-variant='menu'] {
+  display: block;
+  width: 100%;
+  margin-bottom: 4px;
+}
+
+.site-search[data-variant='menu'] .site-search__kbd {
+  display: none;
+}
+
+.site-search[data-variant='menu'] .site-search__panel {
+  position: static;
+  width: 100%;
+  max-height: 45vh;
+  margin-top: 8px;
+}
+
+/* The mobile menu styles every anchor it contains as a full-width nav row.
+ * Result rows are anchors too, so they need the menu-scoped override — and
+ * enough specificity to beat `.mobile-menu a:hover` / `.mobile-menu a.active`. */
+.mobile-menu a.site-search__item {
+  display: grid;
+  gap: 2px 8px;
+  padding: 9px 10px;
+  border-radius: var(--radius-control);
+  color: var(--text);
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.mobile-menu a.site-search__item:hover,
+.mobile-menu a.site-search__item.is-active {
+  border-color: var(--line);
+  background: var(--surface-hover);
+  color: var(--text);
+  box-shadow: none;
+}
+
+.mobile-menu a.site-search__item .site-search__item-desc {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+/* The menu is a fixed panel with no scroll of its own. Once the search panel is
+ * expanded its content can be taller than a phone viewport, which would push the
+ * last links off-screen with no way to reach them, so bound its height and let it
+ * scroll. Scoped to the mobile-menu breakpoint, where the menu is the only nav. */
+@media (max-width: 1000px) {
+  .mobile-menu {
+    max-height: calc(100vh - 88px);
+    max-height: calc(100dvh - 88px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+}
+
+/* ---------- inline page placement (/, /posts, /dictionary, /world) ---------- */
+.site-search[data-variant='inline'] {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: 100%;
+  /* Same breathing room above and below on all three list pages; the first
+   * card/list starts immediately below it (list top margins are reset). */
+  margin: 16px 0 24px;
+}
+
+.site-search[data-variant='inline'] .site-search__panel {
+  position: static;
+  width: 100%;
+  margin-top: 8px;
+  max-height: min(55vh, 26rem);
+}
+
+.site-search[data-variant='inline'] .site-search__kbd {
+  display: none;
+}
+
+/* The `/` hint is hidden in the inline and menu variants, so reserve the same
+ * 24px on the right as the icon+gap occupies on the left; the input box and its
+ * text area are then visually symmetric in every placement. */
+.site-search[data-variant='inline'] .site-search__input,
+.site-search[data-variant='menu'] .site-search__input {
+  margin-right: 24px;
+}
+
+/* Inline results are already reflected in the page list; keep the dropdown
+ * compact so it does not push the list too far down. */
+.site-search[data-variant='inline'] .site-search__item {
+  padding: 7px 9px;
+}
+
+/* Filtered page rows (wiki cards, post cards, chapter rows) must actually
+ * disappear: their own display rules beat the UA `[hidden]` rule. */
+[data-entry-id][hidden] {
+  display: none !important;
+}
+
+@media (max-width: 560px) {
+  .site-search[data-variant='inline'] .site-search__field {
+    height: 40px;
+  }
+}
+
+/* ---------- topbar collapse and fit ----------
+ * The brand, six nav links, search and actions need roughly 980px (Chinese) to
+ * 1180px (English labels) to sit on one row. Until this block existed the
+ * hamburger only took over at 560px, so between 561px and ~1180px the nav links
+ * were clipped, the search field shrank to one character and the brand wrapped
+ * onto 2-3 lines. Collapse earlier and keep the brand on one line. */
+.brand > span:last-child {
+  white-space: nowrap;
+}
+/* Keep a gutter at every width; without it the bar touched the viewport edges
+ * between 861px and the max width while the page content stayed inset. */
+.topbar {
+  width: calc(100% - 20px);
+}
+@media (max-width: 1000px) {
+  .topbar nav,
+  .topbar .site-search,
+  .top-actions #lang,
+  .top-actions #theme {
+    display: none;
+  }
+  .top-actions {
+    margin-left: auto;
+  }
+  .nav-toggle {
+    display: inline-flex;
+  }
+  .mobile-menu {
+    display: flex;
+  }
+}
+@media (min-width: 1001px) and (max-width: 1180px) {
+  .online-chip {
+    display: none;
+  }
+  .topbar nav a {
+    padding-inline: 9px;
+  }
+}

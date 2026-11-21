@@ -1,0 +1,131 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "fluentfolio",
+  "main": "@astrojs/cloudflare/entrypoints/server",
+  "compatibility_date": "2026-09-05",
+  "compatibility_flags": ["nodejs_compat"],
+  // Replace every `<YOUR_…>` placeholder and `example.com` below before the
+  // first deploy (see README → Deploy). Declaring the custom domain here makes
+  // the repository the source of truth and keeps `wrangler deploy` from warning
+  // that it will override the dashboard configuration. Remove the `routes` entry
+  // if you only want the *.workers.dev address.
+  "routes": [{ "pattern": "www.example.com", "custom_domain": true }],
+  "assets": {
+    "binding": "ASSETS",
+    "directory": "./dist",
+    "not_found_handling": "404-page",
+    // `run_worker_first` with an ARRAY is a routing table: `/*` keeps every
+    // document and API route (including all SSR pages) going through the
+    // Worker, and each `!` entry hands a matching static asset back to the
+    // asset layer. A negative entry wins over `/*`. Do not shrink this list to
+    // `/admin*` + `/api/*`: that is what took `/posts`, `/about`, `/status` out
+    // of the Worker and answered them with the static 404 page (PR #9). Adding
+    // an exclusion is only safe when the path is guaranteed to be a file in
+    // `dist/` and never an SSR route; a future SSR route under one of these
+    // prefixes would be shadowed by the asset layer.
+    //
+    // Why exclude these files: when the Worker handles an asset the adapter's
+    // `matchStaticAsset` re-fetches it from the ASSETS binding with a bare URL,
+    // dropping the client's `Range` and `If-None-Match` headers. `/background.*`
+    // then answers a range request with `200` and the whole 7 MB body, which
+    // Safari's `<video>` needs to be `206 partial content`; the media files also
+    // lose `304 Not Modified`. Serving them from the asset layer restores Range,
+    // conditional GETs and the `ETag` / `Cache-Control` / `Content-Type` headers
+    // from `public/_headers` without paying for a Worker invocation.
+    //
+    // The trade-off is that an excluded path never runs `src/middleware.ts`, so
+    // it does not get the security headers/CSP that middleware adds. Those
+    // paths are only `/_astro/*` build output and the three public media files.
+    // `_astro/*` requests are X-Content-Type-Options-only consumers (scripts,
+    // styles, fonts, images), and the media files are covered by the
+    // `/*` rule in `public/_headers` plus their own immutable cache rule. If a
+    // new large binary or hashed asset is added under another path, add its
+    // prefix here — but only after confirming it can never be an SSR route.
+    "run_worker_first": ["/*", "!/_astro/*", "!/background.mp4", "!/background.webm", "!/easter.mp3"],
+  },
+  "observability": {
+    "logs": {
+      "enabled": true,
+      "invocation_logs": true,
+    },
+    "traces": {
+      "enabled": true,
+    },
+    // The dashboard has real-time Issues enabled; without this the deploy would
+    // turn that back off.
+    "issues": {
+      "enabled": true,
+    },
+  },
+  "vars": {
+    "TURNSTILE_HOSTNAMES": "www.example.com,example.com",
+    // Required: fill in the Zero Trust team issuer and either one shared AUD or both route-specific AUDs.
+    "ACCESS_TEAM_DOMAIN": "https://your-team.cloudflareaccess.com",
+    "ACCESS_AUD": "<YOUR_ACCESS_APPLICATION_AUD_TAG>",
+    // Set these only when /admin and /api/admin use separate Access Applications.
+    "ACCESS_ADMIN_AUD": "",
+    "ACCESS_API_AUD": "",
+    "ADMIN_WEBAUTHN_RP_ID": "www.example.com",
+    "ADMIN_WEBAUTHN_ORIGIN": "https://www.example.com",
+    // Non-secret CMS config. Secrets (ADMIN_PASSWORD, ADMIN_SESSION_SECRET,
+    // GITHUB_TOKEN, DISCORD_BLOG_WEBHOOK_URL) must be set with
+    // `wrangler secret put <NAME>` instead — never put them here.
+    // GITHUB_REPO is the repository the admin CMS commits posts to: this
+    // repository by default. In the optional private-content mode it is your
+    // private content repository instead (docs/PRIVATE-CONTENT-REPO.md).
+    // Whichever you choose, scope GITHUB_TOKEN to that one repository only.
+    "GITHUB_REPO": "your-name/fluentfolio",
+    "GITHUB_BRANCH": "main",
+    "R2_PUBLIC_BASE_URL": "https://img.example.com/",
+    // VISITOR_COOKIE_SECRET should be stored as a Worker secret in production.
+    // The implementation falls back to TURNSTILE_SECRET when this binding is absent.
+  },
+  // This is the KV namespace the dashboard binds as `SESSION`. Declaring its id
+  // keeps the built config in sync with the remote one: a deploy no longer warns
+  // that it will override the remote configuration, and it can no longer
+  // provision a new, empty namespace. `Astro.session` is unused in `src/` (the
+  // site's own sessions are the D1-backed admin sessions), so the binding is
+  // inert; it is declared only to stop the configuration drifting.
+  "kv_namespaces": [{ "binding": "SESSION", "id": "<YOUR_KV_NAMESPACE_ID>" }],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "personal-site",
+      "database_id": "<YOUR_D1_DATABASE_ID>",
+      "migrations_dir": "./migrations",
+    },
+  ],
+  "r2_buckets": [
+    {
+      "binding": "BLOG_IMAGES",
+      "bucket_name": "blog-images",
+      // Create with: npx wrangler r2 bucket create blog-images
+      // Then bind a custom domain to it in the dashboard (R2 > blog-images >
+      // Settings > Custom Domains) and put that URL in R2_PUBLIC_BASE_URL above.
+    },
+  ],
+  // Code-level brute-force gate for POST /api/admin/login: every attempt
+  // (success or failure) counts toward 5 attempts per IP per minute, then 429
+  // with Retry-After. The limiter runs before the password comparison (#3).
+  // Dashboard Rate Limiting rules are still recommended as a second layer (see
+  // ADMIN-CMS-SETUP.md).
+  "ratelimits": [
+    {
+      "name": "ADMIN_LOGIN_RATE_LIMIT",
+      "namespace_id": "1001",
+      "simple": { "limit": 5, "period": 60 },
+    },
+    {
+      "name": "ADMIN_PASSKEY_RATE_LIMIT",
+      "namespace_id": "1002",
+      "simple": { "limit": 20, "period": 60 },
+    },
+    // Spam gate for the public POST /api/visitors beacon (#9): 60 views per IP
+    // per minute, then 429. Over-limit requests never touch D1.
+    {
+      "name": "VISITOR_RATE_LIMIT",
+      "namespace_id": "1003",
+      "simple": { "limit": 60, "period": 60 },
+    },
+  ],
+}

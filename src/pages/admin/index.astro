@@ -1,0 +1,522 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import FluentIcon from '../../components/FluentIcon.astro';
+import { checkAdminPageAccess, isAdminSessionConfigured } from '../../lib/admin-auth';
+
+export const prerender = false;
+
+if (!isAdminSessionConfigured()) {
+  return new Response('Admin CMS not configured yet. See ADMIN-CMS-SETUP.md.', { status: 503 });
+}
+const access = await checkAdminPageAccess(Astro.request);
+if (access === 'unavailable') {
+  // D1 outage or migration 0008 not applied: fail closed with 503, and do not
+  // mistake it for "not logged in" (a redirect would hide the real problem).
+  return new Response('Admin session storage is unavailable. Apply migrations/0008_admin_sessions.sql.', {
+    status: 503,
+    headers: { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'no-store, private' },
+  });
+}
+if (access !== 'ok') {
+  return Astro.redirect('/admin/login');
+}
+---
+
+<AdminLayout title="內容管理 · CMS">
+  <div class="ambient ambient-a"></div>
+  <div class="ambient ambient-b"></div>
+
+  <header class="topbar admin-topbar">
+    <div class="brand">
+      <span class="brand-icon">✎</span>
+      <span>內容管理</span>
+    </div>
+    <nav class="tabs" aria-label="CMS sections">
+      <button class="tab-btn active is-active" data-tab="posts" type="button">
+        內容
+      </button>
+      <button class="tab-btn" data-tab="tags" type="button">
+        分類與標籤
+      </button>
+    </nav>
+    <button id="passkey-setup-btn" class="btn btn-ghost btn-sm" type="button">
+      設定 Passkey
+    </button>
+    <button id="logout-all-btn" class="btn btn-ghost btn-sm" type="button" title="登出所有裝置">
+      登出全部
+    </button>
+    <button id="logout-btn" class="icon-btn" type="button" title="登出" aria-label="登出">
+      ↪
+    </button>
+  </header>
+
+  <main class="admin-main">
+    <section id="tab-view-posts" class="tab-panel active">
+      <div class="posts-layout">
+        <section id="list-view" class="post-list-pane card">
+          <div id="collection-switch" class="collection-switch" role="group" aria-label="內容類型">
+            <button type="button" class="collection-btn is-active" data-collection="all">
+              全部
+            </button>
+            <button type="button" class="collection-btn" data-collection="blog">
+              隨筆
+            </button>
+            <button type="button" class="collection-btn" data-collection="novel">
+              小說
+            </button>
+            <button type="button" class="collection-btn" data-collection="dictionary">
+              詞典
+            </button>
+            <button type="button" class="collection-btn" data-collection="world">
+              世界觀
+            </button>
+          </div>
+          <div class="post-list-toolbar">
+            <div class="admin-search">
+              <FluentIcon name="search" size={18} class="admin-search__icon" />
+              <input id="post-search" type="search" placeholder="搜尋所有內容…" aria-label="搜尋內容" />
+              <kbd class="admin-search__kbd" aria-hidden="true">
+                {' '}
+                /{' '}
+              </kbd>
+            </div>
+            <button id="new-post-btn" class="btn btn-primary" type="button">
+              ＋ 新內容
+            </button>
+          </div>
+
+          <div id="batch-toolbar" class="batch-bar" style="display:none;">
+            <span id="batch-count" class="batch-count">
+              已選取 0 篇
+            </span>
+            <div class="batch-actions">
+              <button type="button" class="batch-btn" data-action="set-draft-true">
+                設為草稿
+              </button>
+              <button type="button" class="batch-btn" data-action="set-draft-false">
+                取消草稿
+              </button>
+              <button type="button" class="batch-btn" data-action="set-featured-true">
+                設為精選
+              </button>
+              <button type="button" class="batch-btn" data-action="set-featured-false">
+                取消精選
+              </button>
+              <button type="button" class="batch-btn" data-action="set-category">
+                設定分類…
+              </button>
+              <button type="button" class="batch-btn" data-action="add-tag">
+                新增標籤…
+              </button>
+              <button type="button" class="batch-btn" data-action="remove-tag">
+                移除標籤…
+              </button>
+              <button type="button" class="batch-btn batch-btn-danger" data-action="delete">
+                刪除選取
+              </button>
+            </div>
+          </div>
+
+          <div id="post-list" class="post-list">
+            <p class="admin-loading">載入中…</p>
+          </div>
+        </section>
+
+        <section id="editor-view" class="post-editor-pane card" style="display:none;">
+          <div class="editor-head">
+            <button id="back-btn" class="btn btn-ghost btn-sm" type="button">
+              ← 返回內容列表
+            </button>
+          </div>
+
+          <form id="post-form" class="post-form">
+            <input type="hidden" id="f-original-slug" />
+
+            <div class="form-row">
+              <label>
+                <span id="f-title-label">標題</span>
+                <input id="f-title" class="f-input" required />
+              </label>
+            </div>
+
+            <div class="form-row">
+              <label>
+                網址代稱 (id)
+                <div class="slug-input-row">
+                  <input
+                    id="f-slug"
+                    class="f-input"
+                    required
+                    pattern="[a-z0-9]+(-[a-z0-9]+)*"
+                    placeholder="my-new-content"
+                  />
+                  <button id="slug-generate-btn" class="btn btn-ghost btn-sm" type="button">
+                    重新產生
+                  </button>
+                </div>
+              </label>
+              <label>
+                英文 slug 關鍵字（選填）
+                <input id="f-slug-source" class="f-input" placeholder="例如：my-game-notes" autocomplete="off" />
+              </label>
+              <span class="hint">
+                標題有英文時會自動擷取英文詞；純中文標題會使用 post／chapter／word／lore
+                加日期，不再轉成拼音。需要語義化網址時，可填入英文關鍵字。
+              </span>
+            </div>
+
+            <div class="form-row">
+              <label>
+                <span id="f-description-label">描述</span>
+                <textarea id="f-description" class="f-input" rows="2" required></textarea>
+              </label>
+            </div>
+
+            <div id="row-type" class="form-row" hidden>
+              <label>
+                類型
+                <input id="f-type" class="f-input" placeholder="essay / 概念" />
+              </label>
+            </div>
+
+            <div id="row-novel" class="form-row form-row-grid" hidden>
+              <label>
+                卷
+                <input id="f-volume" class="f-input" placeholder="第一卷" />
+              </label>
+              <label>
+                章節序號
+                <input id="f-chapter" class="f-input" type="number" min="1" />
+              </label>
+              <label>
+                閱讀順序
+                <input id="f-order" class="f-input" type="number" />
+              </label>
+            </div>
+
+            <div id="row-dictionary" class="form-row form-row-grid" hidden>
+              <label>
+                讀音 (IPA)
+                <input id="f-ipa" class="f-input" />
+              </label>
+              <label>
+                詞性
+                <input id="f-pos" class="f-input" />
+              </label>
+            </div>
+
+            <div id="row-etymology" class="form-row" hidden>
+              <label>
+                詞源
+                <textarea id="f-etymology" class="f-input" rows="2"></textarea>
+              </label>
+            </div>
+
+            <div id="row-related" class="form-row" hidden>
+              <label for="related-search">
+                <span id="f-related-label">關聯條目</span>
+              </label>
+              <div class="relation-picker">
+                <div id="related-chips" class="relation-chips"></div>
+                <div class="relation-search">
+                  <input
+                    id="related-search"
+                    class="f-input"
+                    type="search"
+                    autocomplete="off"
+                    placeholder="搜尋標題或 ID，選擇要連接的條目…"
+                  />
+                  <div id="related-options" class="relation-options" role="listbox" hidden></div>
+                </div>
+                <p class="hint">輸入標題或 ID 搜尋，點選候選項即可建立連線；儲存時仍使用原有條目 ID 格式。</p>
+                <input id="f-related" type="hidden" />
+              </div>
+            </div>
+
+            <div id="row-publish-date" class="form-row" hidden>
+              <label>
+                發布日期
+                <input id="f-date" class="f-input" type="date" />
+              </label>
+            </div>
+
+            <div id="row-category" class="form-row" hidden>
+              <label>
+                分類
+                <div class="taxonomy-select-row">
+                  <select id="f-category" class="f-input"></select>
+                  <button id="category-add-btn" class="btn btn-ghost btn-sm" type="button">
+                    新增
+                  </button>
+                </div>
+              </label>
+            </div>
+
+            <div id="row-tags" class="form-row">
+              <label>標籤</label>
+              <div class="taxonomy-select-row tag-select-row">
+                <select id="tag-select" class="f-input">
+                  <option value="">選擇現有標籤…</option>
+                </select>
+                <button id="tag-add-selected" class="btn btn-ghost btn-sm" type="button">
+                  加入
+                </button>
+              </div>
+              <div id="tag-chips" class="tag-editor">
+                <div id="tag-chip-list" class="tag-chip-list"></div>
+                <input id="tag-input" type="text" autocomplete="off" placeholder="或輸入新標籤後按 Enter" />
+              </div>
+            </div>
+
+            <div class="form-row form-row-inline">
+              <label class="checkbox-label">
+                <input type="checkbox" id="f-draft" /> 草稿
+              </label>
+              <label id="f-featured-wrap" class="checkbox-label">
+                <input type="checkbox" id="f-featured" /> 精選
+              </label>
+              <label id="f-notify-wrap" class="checkbox-label" style="display:none;">
+                <input type="checkbox" id="f-notify" /> 更新時通知 Discord
+              </label>
+            </div>
+
+            <div class="form-row markdown-form-row">
+              <div class="editor-label-row">
+                <label for="f-body">內文 (Markdown)</label>
+                <div class="editor-tools">
+                  <button type="button" id="upload-btn" class="btn btn-ghost btn-sm">
+                    📷 插入圖片
+                  </button>
+                  <input type="file" id="upload-input" accept="image/jpeg,image/png,image/webp,image/gif" hidden />
+                  <span id="upload-status" class="hint"></span>
+                  <button type="button" id="md-lint-btn" class="btn btn-ghost btn-sm">
+                    ✓ 語法檢查
+                  </button>
+                </div>
+              </div>
+              <div class="md-editor-controls">
+                <div class="md-view-switch" role="group" aria-label="Markdown 顯示模式">
+                  <button
+                    type="button"
+                    id="md-edit-btn"
+                    class="md-view-btn is-active"
+                    data-md-view="editor"
+                    aria-pressed="true"
+                  >
+                    編輯
+                  </button>
+                  <button type="button" id="md-split-btn" class="md-view-btn" data-md-view="split" aria-pressed="false">
+                    分欄
+                  </button>
+                  <button
+                    type="button"
+                    id="md-preview-btn"
+                    class="md-view-btn"
+                    data-md-view="preview"
+                    aria-pressed="false"
+                  >
+                    預覽
+                  </button>
+                </div>
+                <div class="md-editor-status">
+                  <span id="md-stats">0 字 · 1 行</span>
+                  <button type="button" id="md-fullscreen-btn" class="btn btn-ghost btn-sm" aria-pressed="false">
+                    專注寫作
+                  </button>
+                </div>
+              </div>
+              <div id="md-toolbar" class="markdown-toolbar" aria-label="Markdown 工具">
+                <button type="button" class="btn btn-ghost btn-sm md-toolbtn" data-md="h1" title="一級標題">
+                  H1
+                </button>
+                <button type="button" class="btn btn-ghost btn-sm md-toolbtn" data-md="h2" title="二級標題">
+                  H2
+                </button>
+                <button type="button" class="btn btn-ghost btn-sm md-toolbtn" data-md="h3" title="三級標題">
+                  H3
+                </button>
+                <span class="md-toolbar-divider" aria-hidden="true"></span>
+                <button type="button" class="btn btn-ghost btn-sm md-toolbtn" data-md="bold" title="粗體 (Ctrl+B)">
+                  <strong>B</strong>
+                </button>
+                <button type="button" class="btn btn-ghost btn-sm md-toolbtn" data-md="italic" title="斜體 (Ctrl+I)">
+                  <em>I</em>
+                </button>
+                <button type="button" class="btn btn-ghost btn-sm md-toolbtn" data-md="strike" title="刪除線">
+                  S̶
+                </button>
+                <button type="button" class="btn btn-ghost btn-sm md-toolbtn" data-md="link" title="插入連結 (Ctrl+K)">
+                  🔗
+                </button>
+                <span class="md-toolbar-divider" aria-hidden="true"></span>
+                <button type="button" class="btn btn-ghost btn-sm md-toolbtn" data-md="code" title="行內程式碼">
+                  `code`
+                </button>
+                <button type="button" class="btn btn-ghost btn-sm md-toolbtn" data-md="codeblock" title="程式碼區塊">
+                  ⌘
+                </button>
+                <button type="button" class="btn btn-ghost btn-sm md-toolbtn" data-md="quote" title="引用">
+                  ❝
+                </button>
+                <button type="button" class="btn btn-ghost btn-sm md-toolbtn" data-md="hr" title="分隔線">
+                  ―
+                </button>
+                <span class="md-toolbar-divider" aria-hidden="true"></span>
+                <button type="button" class="btn btn-ghost btn-sm md-toolbtn" data-md="ul" title="無序清單">
+                  • 清單
+                </button>
+                <button type="button" class="btn btn-ghost btn-sm md-toolbtn" data-md="ol" title="有序清單">
+                  1. 清單
+                </button>
+                <button type="button" class="btn btn-ghost btn-sm md-toolbtn" data-md="task" title="任務清單">
+                  ☑ 任務
+                </button>
+                <button type="button" class="btn btn-ghost btn-sm md-toolbtn" data-md="table" title="插入表格">
+                  表格
+                </button>
+              </div>
+              <div id="md-workspace" class="md-workspace" data-view="editor">
+                <textarea
+                  id="f-body"
+                  class="body-textarea f-input"
+                  rows="24"
+                  spellcheck="false"
+                  autocapitalize="off"
+                  autocomplete="off"
+                  placeholder="使用 Markdown 撰寫內容，支援標題、清單、引用、表格、程式碼區塊、圖片，以及 [[dictionary-id]] 詞典連結。"
+                ></textarea>
+                <div id="md-preview" class="markdown-preview md-panel markdown-content" aria-live="polite"></div>
+              </div>
+              <details class="md-help">
+                <summary>Markdown 語法速查</summary>
+                <div class="markdown-help-grid">
+                  <div>
+                    <code># 標題 / ## 小標題</code>
+                    <span>建立不同層級標題</span>
+                  </div>
+                  <div>
+                    <code>**粗體**　*斜體*　~~刪除線~~</code>
+                    <span>文字強調</span>
+                  </div>
+                  <div>
+                    <code>[文字](https://example.com)</code>
+                    <span>超連結</span>
+                  </div>
+                  <div>
+                    <code>![替代文字](圖片網址)</code>
+                    <span>插入圖片（亦可使用上方圖片按鈕）</span>
+                  </div>
+                  <div>
+                    <code>- 項目　 /　 1. 項目</code>
+                    <span>無序或有序清單</span>
+                  </div>
+                  <div>
+                    <code>- [ ] 待辦　 /　 - [x] 完成</code>
+                    <span>任務清單</span>
+                  </div>
+                  <div>
+                    <code>&gt; 引用文字　 /　 ---</code>
+                    <span>引用與分隔線</span>
+                  </div>
+                  <div>
+                    <code>`行內程式碼`　 /　 ```js</code>
+                    <span>程式碼與語言標記</span>
+                  </div>
+                  <div>
+                    <code>[[dictionary-id]]</code>
+                    <span>連接詞典條目並顯示釋義提示</span>
+                  </div>
+                </div>
+              </details>
+              <div id="md-lint" class="markdown-debug md-panel" style="display:none;"></div>
+            </div>
+
+            <p id="form-message" class="form-message"></p>
+
+            <div class="form-actions">
+              <button type="submit" id="save-btn" class="btn btn-primary">
+                儲存內容
+              </button>
+              <button type="button" id="delete-btn" class="btn btn-danger" style="display:none;">
+                刪除內容
+              </button>
+            </div>
+          </form>
+        </section>
+      </div>
+    </section>
+
+    <section id="tab-view-tags" class="tab-panel" style="display:none;">
+      <div class="tags-panel card">
+        <div class="panel-heading">
+          <div>
+            <div class="eyebrow">CONTENT TAXONOMY</div>
+            <h1>分類與標籤</h1>
+            <p class="hint">分類只套用於隨筆；標籤可用於隨筆及小說。重新命名或刪除會批次更新所有相關內容。</p>
+          </div>
+        </div>
+        <div class="taxonomy-grid">
+          <section class="taxonomy-section">
+            <h2>分類</h2>
+            <p class="hint">分類會從隨筆內容自動彙總；新增分類時，請在編輯文章時選擇「新增」。</p>
+            <table class="tags-table">
+              <thead>
+                <tr>
+                  <th>分類</th>
+                  <th>文章數</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody id="categories-tbody">
+                <tr>
+                  <td colspan="3" class="admin-loading">
+                    載入中…
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </section>
+          <section class="taxonomy-section">
+            <h2>標籤</h2>
+            <table class="tags-table">
+              <thead>
+                <tr>
+                  <th>標籤</th>
+                  <th>內容數</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody id="tags-tbody">
+                <tr>
+                  <td colspan="3" class="admin-loading">
+                    載入中…
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </section>
+        </div>
+      </div>
+    </section>
+  </main>
+</AdminLayout>
+
+<script>
+  import '../../scripts/admin-cms';
+</script>
+
+<script>
+  // "Log out everywhere": revokes every server-side admin session, including
+  // ones on other devices, then clears this browser's cookie and returns to the
+  // login page. The admin UI has no i18n layer, so the text stays zh-HK.
+  const logoutAllButton = document.getElementById('logout-all-btn') as HTMLButtonElement | null;
+  logoutAllButton?.addEventListener('click', async () => {
+    if (!window.confirm('登出所有裝置？其他裝置上的管理員工作階段亦會失效。')) return;
+    logoutAllButton.disabled = true;
+    try {
+      await fetch('/api/admin/logout-all', { method: 'POST', credentials: 'same-origin', cache: 'no-store' });
+    } finally {
+      window.location.href = '/admin/login';
+    }
+  });
+</script>

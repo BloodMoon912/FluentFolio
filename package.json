@@ -1,0 +1,67 @@
+{
+  "name": "fluentfolio",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.23.4"
+  },
+  "scripts": {
+    "dev": "astro dev",
+    "fetch:content": "node scripts/fetch-content.mjs",
+    "prebuild": "node scripts/fetch-content.mjs",
+    "build": "astro build",
+    "preview": "astro preview",
+    "check": "astro check",
+    "check:public": "tsc -p tsconfig.public.json",
+    "check:inline-scripts": "node scripts/check-inline-scripts.mjs",
+    "check:og-png": "node scripts/check-og-png.mjs",
+    "lint": "node scripts/lint-markdown.mjs",
+    "validate:md": "node scripts/validate-markdown.mjs",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "node --test \"tests/*.test.ts\"",
+    "deploy": "npm run build && wrangler deploy",
+    "cf-typegen": "wrangler types",
+    "check:hko-time": "node scripts/check-hko-ntp.mjs"
+  },
+  "dependencies": {
+    "@astrojs/cloudflare": "14.4.2",
+    "@simplewebauthn/server": "14.0.3",
+    "@swup/astro": "^1.8.0",
+    "astro": "7.4.2",
+    "dompurify": "3.4.17",
+    "fuse.js": "7.5.0",
+    "markdownlint": "0.41.1",
+    "marked": "18.0.13",
+    "pinyin-pro": "^3.29.5",
+    "satteri-sanitize": "0.2.0",
+    "swup": "^4.10.0",
+    "to-jyutping": "^3.1.1"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.4",
+    "@astrojs/markdown-satteri": "0.4.5",
+    "@lint-md/core": "2.5.3",
+    "@resvg/resvg-js": "^2.6.2",
+    "prettier": "^3.9.9",
+    "prettier-plugin-astro": "^1.1.0",
+    "satteri": "0.10.5",
+    "typescript": "6.0.3",
+    "wrangler": "4.152.0"
+  },
+  "overrides": {
+    "wrangler": "4.152.0",
+    "serialize-javascript": "7.1.2",
+    "brace-expansion@1": "1.1.21",
+    "brace-expansion@2": "2.1.7",
+    "fast-uri@3": "3.1.8",
+    "http-cache-semantics": "4.3.0",
+    "devalue": "5.9.4",
+    "undici@7": "7.30.1",
+    "undici@8": "8.12.3",
+    "vite": "8.3.5",
+    "zod": "4.6.7",
+    "source-map-js": "1.2.2",
+    "sharp": "0.35.5"
+  }
+}

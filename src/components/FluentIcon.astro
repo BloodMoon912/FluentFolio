@@ -1,0 +1,60 @@
+---
+export type FluentIconName =
+  | 'home'
+  | 'book'
+  | 'arrow-right'
+  | 'arrow-left'
+  | 'arrow-up-right'
+  | 'arrow-down'
+  | 'chevron-down'
+  | 'search'
+  | 'language'
+  | 'dark-theme'
+  | 'lightbulb'
+  | 'menu'
+  | 'checkmark-circle'
+  | 'info'
+  | 'error-circle'
+  | 'globe'
+  | 'code'
+  | 'database'
+  | 'games';
+interface Props {
+  name: FluentIconName;
+  size?: number | string;
+  class?: string;
+  title?: string;
+}
+const { name, size = 20, class: className = '', title } = Astro.props;
+const fileMap: Record<FluentIconName, string> = {
+  home: 'home_24_regular.svg',
+  book: 'book_24_regular.svg',
+  'arrow-right': 'arrow_right_24_regular.svg',
+  'arrow-left': 'arrow_left_24_regular.svg',
+  'arrow-up-right': 'arrow_up_right_24_regular.svg',
+  'arrow-down': 'arrow_down_24_regular.svg',
+  'chevron-down': 'chevron_down_24_regular.svg',
+  search: 'search_24_regular.svg',
+  language: 'translate_24_regular.svg',
+  'dark-theme': 'dark_theme_24_regular.svg',
+  lightbulb: 'lightbulb_filament_24_regular.svg',
+  menu: 'line_horizontal_3_20_regular.svg',
+  'checkmark-circle': 'checkmark_circle_24_regular.svg',
+  info: 'info_24_regular.svg',
+  'error-circle': 'error_circle_24_regular.svg',
+  globe: 'globe_24_regular.svg',
+  code: 'code_24_regular.svg',
+  database: 'database_24_regular.svg',
+  games: 'games_24_regular.svg',
+};
+// #22: icons are vendored under public/icons/fluent/ (see
+// scripts/vendor-fluent-icons.mjs) and served by this site — no CDN request.
+const iconUrl = `/icons/fluent/${fileMap[name]}`;
+---
+
+<span
+  class:list={['fluent-icon', className]}
+  style={`--fluent-icon-url:url("${iconUrl}");width:${typeof size === 'number' ? `${size}px` : size};height:${typeof size === 'number' ? `${size}px` : size};`}
+  aria-hidden={title ? undefined : 'true'}
+  title={title}
+></span>

@@ -1,0 +1,173 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PostBadge from '../../components/PostBadge.astro';
+import SiteSearch from '../../components/SiteSearch.astro';
+import FluentIcon from '../../components/FluentIcon.astro';
+import { buildMixedFeed, groupNovelByVolume } from '../../lib/content-feed';
+import { estimateReadingMinutes, formatHKTDate } from '../../lib/time';
+import { t as tr } from '../../lib/i18n';
+
+// Unified entry point. The tab is a query parameter rather than client state so
+// the page works without JavaScript, survives a reload, and keeps Swup's
+// navigation semantics (each tab is just another URL).
+const url = new URL(Astro.url);
+const tab = url.searchParams.get('tab') === 'novel' ? 'novel' : 'blog';
+
+const [blogEntries, novelEntries] = await Promise.all([
+  getCollection('blog', ({ data }) => !data.draft),
+  getCollection('novel', ({ data }) => !data.draft),
+]);
+
+const blogFeed = buildMixedFeed(blogEntries, []).sort((a, b) => b.date.valueOf() - a.date.valueOf());
+const volumeGroups = groupNovelByVolume(novelEntries);
+const chapterCount = novelEntries.length;
+---
+
+<BaseLayout titleKey="title_posts" description={tr('zh', 'posts_lead')}>
+  <section class="page posts-page">
+    <div class="blog-heading">
+      <div>
+        <div class="eyebrow">{tr('zh', 'posts_eyebrow')}</div>
+        <h1 class="page-title">{tr('zh', 'posts_page_title')}</h1>
+        <p class="lead">{tr('zh', 'posts_lead')}</p>
+      </div>
+    </div>
+
+    <nav class="content-tabs" aria-label={tr('zh', 'title_posts')} role="tablist">
+      <span class="nav-selection-indicator content-tabs__pill" aria-hidden="true"></span>
+      <a
+        id="tab-blog"
+        class="content-tab"
+        href="/posts?tab=blog"
+        role="tab"
+        aria-controls="panel-blog"
+        aria-selected={tab === 'blog' ? 'true' : 'false'}
+      >
+        {tr('zh', 'tab_blog')}
+        <span class="content-tab__count">{blogEntries.length}</span>
+      </a>
+      <a
+        id="tab-novel"
+        class="content-tab"
+        href="/posts?tab=novel"
+        role="tab"
+        aria-controls="panel-novel"
+        aria-selected={tab === 'novel' ? 'true' : 'false'}
+      >
+        {tr('zh', 'tab_novel')}
+        <span class="content-tab__count">{chapterCount}</span>
+      </a>
+    </nav>
+
+    <!-- One search entry per panel, locked to that panel's collection. Both
+         panels are server-rendered and toggled client-side; the tab click never
+         navigates, so the topbar-style indicator animation is always visible.
+         Without JS the anchors still load ?tab= and the server hides the other
+         panel. The whole-site search remains available in the shell. -->
+    <div
+      id="panel-blog"
+      class="article"
+      role="tabpanel"
+      aria-labelledby="tab-blog"
+      aria-label={tr('zh', 'tab_blog')}
+      hidden={tab !== 'blog'}
+    >
+      <SiteSearch
+        id="posts-search-blog"
+        variant="inline"
+        lockedKind="blog"
+        placeholderKey="search_posts_blog_placeholder"
+        filterList="#panel-blog"
+        syncQuery
+        filterTags={[...new Set(blogFeed.flatMap((item) => item.tags.map((tag) => tag.trim())))]
+          .filter(Boolean)
+          .sort((a, b) => a.localeCompare(b, 'zh-Hant'))}
+      />
+      {blogFeed.length === 0 ? (
+        <article class="card blog-preview empty-state">
+          <h2>{tr('zh', 'posts_empty_blog')}</h2>
+        </article>
+      ) : (
+        blogFeed.map((item) => (
+          <article class="card blog-preview" data-entry-id={item.id}>
+            <div class="post-meta">
+              <PostBadge kind="blog" />
+              <time datetime={item.date.toISOString()}>{formatHKTDate(item.date)}</time>
+              <span>·</span>
+              <span>{item.meta}</span>
+              <span>·</span>
+              <span>
+                {tr(
+                  'zh',
+                  'reading_time',
+                  String(estimateReadingMinutes(blogEntries.find((entry) => entry.id === item.id)?.body ?? '')),
+                )}
+              </span>
+            </div>
+            <h2>
+              <a href={item.href}>{item.title}</a>
+            </h2>
+            <p>{item.description}</p>
+            <a class="text-link" href={item.href} data-i18n="read_more">
+              {tr('zh', 'read_more')}
+              <FluentIcon name="arrow-right" size={16} />
+            </a>
+          </article>
+        ))
+      )}
+    </div>
+
+    <div
+      id="panel-novel"
+      role="tabpanel"
+      aria-labelledby="tab-novel"
+      aria-label={tr('zh', 'tab_novel')}
+      hidden={tab !== 'novel'}
+    >
+      <SiteSearch
+        id="posts-search-novel"
+        variant="inline"
+        lockedKind="novel"
+        placeholderKey="search_posts_novel_placeholder"
+        filterList="#panel-novel"
+        syncQuery
+      />
+      {volumeGroups.length === 0 ? (
+        <article class="card blog-preview empty-state">
+          <h2>{tr('zh', 'posts_empty_novel')}</h2>
+        </article>
+      ) : (
+        volumeGroups.map((group) => (
+          <section class="volume-group">
+            <h2 class="volume-group__title">{group.volume}</h2>
+            <ol class="chapter-list">
+              {group.chapters.map((chapter) => (
+                <li>
+                  <a class="chapter-row" href={`/posts/novel/${chapter.id}`} data-entry-id={chapter.id}>
+                    <span class="chapter-row__number">{tr('zh', 'chapter_short', String(chapter.data.chapter))}</span>
+                    <span class="chapter-row__title">{chapter.data.title}</span>
+                    <time class="chapter-row__date" datetime={chapter.data.date.toISOString()}>
+                      {formatHKTDate(chapter.data.date)}
+                    </time>
+                  </a>
+                </li>
+              ))}
+            </ol>
+          </section>
+        ))
+      )}
+    </div>
+
+    <div class="actions" style="margin-top:32px">
+      <a class="btn" href="/dictionary">
+        {tr('zh', 'title_dictionary')}
+        <FluentIcon name="arrow-right" size={16} />
+      </a>
+      <a class="btn" href="/world">
+        {tr('zh', 'title_world')}
+        <FluentIcon name="arrow-right" size={16} />
+      </a>
+    </div>
+  </section>
+</BaseLayout>

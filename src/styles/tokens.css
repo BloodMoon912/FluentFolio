@@ -1,0 +1,112 @@
+:root {
+  font-family:
+    'Segoe UI Variable',
+    'Segoe UI',
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
+  color-scheme: dark;
+  --bg: #0a0b0e;
+  --bg-2: #111318;
+  --surface: rgba(27, 30, 36, 0.72);
+  --surface-solid: #1b1e24;
+  --surface-hover: rgba(44, 48, 58, 0.88);
+  --text: #f4f4f5;
+  --muted: #a6a8ae;
+  --subtle: #8b8e96;
+  --line: rgba(255, 255, 255, 0.1);
+  --accent: #8b7bff;
+  --accent-2: #6edbff;
+  --good: #63df98;
+  --warning: #f2c66d;
+  --bad: #ff7676;
+  --shadow: 0 24px 70px rgba(0, 0, 0, 0.28);
+  --radius: 18px;
+  --radius-card: 16px;
+  --radius-popover: 14px;
+  --radius-control: 10px;
+  --radius-nav: 18px;
+  --radius-avatar: 20px;
+  --glass-blur-control: 12px;
+  --glass-blur-field: 18px;
+  --glass-blur-card: 20px;
+  --glass-blur-popover: 26px;
+  --glass-blur-nav: 30px;
+  --glass-saturate: 145%;
+  --shadow-card: var(--fluent-shadow-3);
+  --shadow-popover: var(--fluent-shadow-4), var(--shadow);
+  --shadow-panel: 0 18px 40px rgba(0, 0, 0, 0.18);
+  --shadow-modal: 0 30px 90px rgba(0, 0, 0, 0.3), var(--shadow);
+  --shadow-raised: 0 24px 70px rgba(0, 0, 0, 0.4);
+  --max: 1180px;
+  --site-bg-veil: rgba(10, 11, 14, 0.6);
+  --input-bg: rgba(255, 255, 255, 0.09);
+  --input-hover: rgba(255, 255, 255, 0.15);
+  --accent-ring: color-mix(in srgb, var(--accent) 30%, transparent);
+
+  /* Fluent motion & elevation tokens (see Fluent_UI_Design_Motion_Guidelines_for_Astro.md) */
+  --fluent-duration-instant: 83ms;
+  --fluent-duration-fast: 167ms;
+  --fluent-duration-normal: 250ms;
+  --fluent-duration-emphasis: 333ms;
+  --fluent-ease-decelerate: cubic-bezier(0, 0, 0, 1);
+  --fluent-ease-standard: cubic-bezier(0.55, 0.55, 0, 1);
+  --fluent-ease-accelerate: cubic-bezier(1, 0, 1, 1);
+  --fluent-ease-linear: linear;
+  --fluent-layer-content: 10;
+  --fluent-layer-dropdown: 60;
+  --fluent-layer-sticky: 100;
+  --fluent-shadow-1: 0 1px 3px rgb(0 0 0 / 0.12);
+  --fluent-shadow-2: 0 4px 12px rgb(0 0 0 / 0.14);
+  --fluent-shadow-3: 0 8px 24px rgb(0 0 0 / 0.18);
+  --fluent-shadow-4: 0 16px 40px rgb(0 0 0 / 0.22);
+}
+:root[data-theme='light'] {
+  color-scheme: light;
+  --bg: #f4f5f7;
+  --bg-2: #ffffff;
+  --surface: rgba(255, 255, 255, 0.78);
+  --surface-solid: #ffffff;
+  --surface-hover: #f0f1f4;
+  --text: #17181b;
+  --muted: #63666d;
+  --subtle: #6b6f77;
+  --line: rgba(0, 0, 0, 0.09);
+  --accent: #6755e8;
+  --accent-2: #006b96;
+  --shadow: 0 20px 55px rgba(34, 39, 46, 0.12);
+  --site-bg-veil: rgba(244, 245, 247, 0.78);
+  --input-bg: rgba(255, 255, 255, 0.7);
+  --input-hover: rgba(255, 255, 255, 0.85);
+  --accent-ring: color-mix(in srgb, var(--accent) 24%, transparent);
+}
+* {
+  box-sizing: border-box;
+}
+/* Site-wide link language: no permanent underline; links reveal themselves on
+ * hover only. Components may still override the hover treatment locally. */
+a {
+  text-decoration: none;
+}
+a:hover {
+  color: var(--accent-2);
+}
+:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+html {
+  scroll-behavior: smooth;
+  --swup-fade-theme-duration: 250ms;
+}

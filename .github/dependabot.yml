@@ -1,0 +1,21 @@
+# Keeps the npm dependencies and the pinned GitHub Actions up to date.
+#
+# The project has no automated dependency updates otherwise, and several direct
+# dependencies sit on the critical path of the CMS (marked, dompurify,
+# markdownlint) or of the build itself (astro, @astrojs/cloudflare, wrangler).
+#
+# Dependabot pull requests run the same CI as any other change: type-check,
+# Markdown lint, unit tests, then a production build.
+
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

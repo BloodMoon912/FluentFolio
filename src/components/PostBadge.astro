@@ -1,0 +1,19 @@
+---
+// Source badge for the mixed feed: `隨筆` for blog essays, `小說` for novel
+// chapters. The label is a dictionary value rather than a literal so the
+// language toggle can swap it like every other UI string.
+import { DEFAULT_LANG, t as tr } from '../lib/i18n';
+
+interface Props {
+  kind: 'blog' | 'novel';
+  class?: string;
+}
+
+const { kind, class: className } = Astro.props;
+const key = kind === 'novel' ? 'badge_novel' : 'badge_blog';
+const label = tr(DEFAULT_LANG, key);
+---
+
+<span class:list={['post-badge', `post-badge--${kind}`, className]} data-i18n={key}>
+  {label}
+</span>

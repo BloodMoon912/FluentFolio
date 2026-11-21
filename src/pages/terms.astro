@@ -1,0 +1,95 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { COPY_MAX_CHARS } from '../lib/copy-protection';
+import { t as tr } from '../lib/i18n';
+
+// Prerendered at build time: the page only reads the static i18n dictionaries,
+// so nothing is request-scoped and no Worker invocation is needed. The static
+// response's security headers live in public/_headers (middleware does not run
+// for static assets).
+export const prerender = true;
+---
+
+<BaseLayout titleKey="title_terms" description={tr('zh', 'terms_intro')}>
+  <section class="page legal-page">
+    <div class="eyebrow">TERMS</div>
+    <h1 class="page-title" data-i18n="title_terms">
+      {tr('zh', 'title_terms')}
+    </h1>
+    <p class="lead" data-i18n="terms_intro">
+      {tr('zh', 'terms_intro')}
+    </p>
+    <p class="legal-owner" data-i18n="legal_owner">
+      {tr('zh', 'legal_owner')}
+    </p>
+    <div class="legal-meta">
+      <span data-i18n="legal_effective">{tr('zh', 'legal_effective')}</span>
+      <span data-i18n="legal_reviewed">{tr('zh', 'legal_reviewed')}</span>
+    </div>
+    <article class="card legal-card">
+      <section>
+        <h2 data-i18n="terms_use_title">{tr('zh', 'terms_use_title')}</h2>
+        <p data-i18n="terms_use_body">{tr('zh', 'terms_use_body')}</p>
+      </section>
+      <section>
+        <h2 data-i18n="terms_content_title">{tr('zh', 'terms_content_title')}</h2>
+        <p data-i18n="terms_content_body">{tr('zh', 'terms_content_body')}</p>
+      </section>
+      {/*
+        Paired with the copy-protection policy in src/lib/copy-protection.ts:
+        COPY_MAX_CHARS is the same reference limit the clipboard guard uses, so
+        the two cannot drift. The terms_license_* strings live in
+        src/i18n/ui.ts (zh + en).
+      */}
+      <section>
+        <h2 data-i18n="terms_license_title">{tr('zh', 'terms_license_title')}</h2>
+        <p data-i18n="terms_license_body" data-i18n-args={String(COPY_MAX_CHARS)}>
+          {tr('zh', 'terms_license_body', COPY_MAX_CHARS)}
+        </p>
+        <p data-i18n="terms_license_restrictions">{tr('zh', 'terms_license_restrictions')}</p>
+        <p>
+          <span data-i18n="terms_license_requests_prefix">{tr('zh', 'terms_license_requests_prefix')}</span>
+          <a href="mailto:contact@example.com">contact@example.com</a>
+          <span data-i18n="terms_license_requests_suffix">{tr('zh', 'terms_license_requests_suffix')}</span>
+        </p>
+        <p data-i18n="terms_license_effective">{tr('zh', 'terms_license_effective')}</p>
+      </section>
+      <section>
+        <h2 data-i18n="terms_copyright_title">{tr('zh', 'terms_copyright_title')}</h2>
+        <p data-i18n="terms_copyright_body">{tr('zh', 'terms_copyright_body')}</p>
+      </section>
+      <section>
+        <h2 data-i18n="terms_thirdparty_title">{tr('zh', 'terms_thirdparty_title')}</h2>
+        <p data-i18n="terms_thirdparty_body">{tr('zh', 'terms_thirdparty_body')}</p>
+      </section>
+      <section>
+        <h2 data-i18n="terms_accuracy_title">{tr('zh', 'terms_accuracy_title')}</h2>
+        <p data-i18n="terms_accuracy_body">{tr('zh', 'terms_accuracy_body')}</p>
+      </section>
+      <section>
+        <h2 data-i18n="terms_disclaimer_title">{tr('zh', 'terms_disclaimer_title')}</h2>
+        <p data-i18n="terms_disclaimer_body">{tr('zh', 'terms_disclaimer_body')}</p>
+      </section>
+      <section>
+        <h2 data-i18n="terms_liability_title">{tr('zh', 'terms_liability_title')}</h2>
+        <p data-i18n="terms_liability_body">{tr('zh', 'terms_liability_body')}</p>
+      </section>
+      <section>
+        <h2 data-i18n="terms_security_title">{tr('zh', 'terms_security_title')}</h2>
+        <p data-i18n="terms_security_body">{tr('zh', 'terms_security_body')}</p>
+      </section>
+      <section>
+        <h2 data-i18n="terms_changes_title">{tr('zh', 'terms_changes_title')}</h2>
+        <p data-i18n="terms_changes_body">{tr('zh', 'terms_changes_body')}</p>
+      </section>
+      <section>
+        <h2 data-i18n="terms_law_title">{tr('zh', 'terms_law_title')}</h2>
+        <p data-i18n="terms_law_body">{tr('zh', 'terms_law_body')}</p>
+      </section>
+      <section>
+        <h2 data-i18n="terms_contact_title">{tr('zh', 'terms_contact_title')}</h2>
+        <p data-i18n="terms_contact_body">{tr('zh', 'terms_contact_body')}</p>
+      </section>
+    </article>
+  </section>
+</BaseLayout>

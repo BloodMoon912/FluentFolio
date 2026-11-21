@@ -1,0 +1,332 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { services } from '../lib/data';
+import { t as tr } from '../lib/i18n';
+import FluentIcon from '../components/FluentIcon.astro';
+
+// Polling lives in public/scripts/status-panel.js, loaded by the markup below
+// and re-run by Swup when this page is swapped in. No per-request nonce is
+// involved: the Report-Only policy is nonce-free.
+---
+
+<BaseLayout titleKey="title_status" description={tr('zh', 'status_lead')}>
+  <section class="page status-page">
+    <div class="status-hero">
+      <div>
+        <div class="eyebrow" data-i18n="system_status">
+          SYSTEM STATUS
+        </div>
+        <h1 class="page-title" data-i18n="service_status">
+          服務狀態
+        </h1>
+        <p class="lead" data-i18n="status_lead">
+          即時檢查網站、D1、Discord 與 Steam，並顯示過去 24 小時的檢查紀錄。
+        </p>
+      </div>
+    </div>
+
+    <div class="status-hero-row">
+      <div class="status-clock-card">
+        <div class="status-clock" aria-live="polite">
+          <div>
+            <span class="status-clock-label" data-i18n="realtime_clock">
+              即時時間
+            </span>
+            <strong id="live-clock">--:--:--</strong>
+          </div>
+          <span class="status-clock-date" id="live-date">
+            ----
+          </span>
+          <span class="status-clock-zone">HKT · UTC+08:00</span>
+        </div>
+        <div class="time-source">
+          <span class="pulse"></span>
+          <span data-i18n="hk_standard_time">香港標準時間</span>
+          <strong>UTC+8</strong>
+        </div>
+      </div>
+      <div class="status-overall" id="overall">
+        <span class="status-overall-icon" id="overall-icon">
+          <FluentIcon name="info" size={18} />
+        </span>
+        <div>
+          <strong id="overall-label" data-i18n="checking">
+            正在檢查
+          </strong>
+          <span id="checked" class="tiny" data-i18n="checking_ellipsis">
+            正在檢查…
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <section class="status-grid" aria-label="服務狀態檢查">
+      {services.map((service) => (
+        <article class="status-card" data-service={service.key}>
+          <div class="status-card-icon" aria-hidden="true">
+            <FluentIcon
+              name={
+                service.key === 'database'
+                  ? 'database'
+                  : service.key === 'activity' || service.key === 'steam'
+                    ? 'games'
+                    : 'globe'
+              }
+              size={20}
+            />
+          </div>
+          <div class="status-card-main">
+            <div class="status-card-top">
+              <div>
+                <h2 data-i18n={service.id}>{tr('zh', service.id)}</h2>
+                <p data-i18n={service.descId}>{tr('zh', service.descId)}</p>
+              </div>
+              <span class="service-status warn" data-status data-i18n="reading">
+                {tr('zh', 'reading')}
+              </span>
+            </div>
+            <div class="status-card-meta">
+              <span data-latency>—</span>
+              <span data-detail data-i18n="waiting">
+                {tr('zh', 'waiting')}
+              </span>
+            </div>
+          </div>
+        </article>
+      ))}
+    </section>
+
+    <section class="card system-api-card">
+      <div class="section-head" style="margin-top:0">
+        <div>
+          <div class="eyebrow" data-i18n="system_api_eyebrow">
+            SYSTEM API
+          </div>
+          <h2 data-i18n="system_api">系統 API</h2>
+          <p data-i18n="system_api_lead">Cloudflare 邊緣節點與 Worker 執行環境的即時資料。</p>
+        </div>
+      </div>
+      <div class="system-api-grid" id="system-summary">
+        <div class="health-row">
+          <span data-i18n="runtime">執行環境</span>
+          <strong data-system-value="runtime">—</strong>
+        </div>
+        <div class="health-row">
+          <span data-i18n="edge_node">邊緣節點</span>
+          <strong data-system-value="colo">—</strong>
+        </div>
+        <div class="health-row">
+          <span data-i18n="edge_location">邊緣位置</span>
+          <strong data-system-value="location">—</strong>
+        </div>
+        <div class="health-row">
+          <span data-i18n="protocol">HTTP 協定</span>
+          <strong data-system-value="httpProtocol">—</strong>
+        </div>
+        <div class="health-row">
+          <span data-i18n="tls_version">TLS 版本</span>
+          <strong data-system-value="tlsVersion">—</strong>
+        </div>
+        <div class="health-row">
+          <span data-i18n="server_time">伺服器時間</span>
+          <strong data-system-value="now">—</strong>
+        </div>
+      </div>
+    </section>
+
+    <section class="status-details-grid">
+      <article class="card health-summary-card">
+        <div class="section-head" style="margin-top:0">
+          <div>
+            <div class="eyebrow" data-i18n="health_check_eyebrow">
+              HEALTH CHECK
+            </div>
+            <h2 data-i18n="health_check">API 健康狀態</h2>
+            <p data-i18n="api_health_lead">Worker 與 D1 的即時摘要。</p>
+          </div>
+          <span id="health-pill" class="status-badge" data-i18n="reading">
+            讀取中
+          </span>
+        </div>
+        <div class="health-summary" id="health-summary">
+          <div class="health-row">
+            <span data-i18n="service">服務</span>
+            <strong>—</strong>
+          </div>
+          <div class="health-row">
+            <span data-i18n="database">資料庫</span>
+            <strong>—</strong>
+          </div>
+          <div class="health-row">
+            <span data-i18n="http_status">HTTP 狀態</span>
+            <strong>—</strong>
+          </div>
+          <div class="health-row">
+            <span data-i18n="response_time">回應時間</span>
+            <strong>—</strong>
+          </div>
+        </div>
+        <details class="health-raw">
+          <summary data-i18n="view_raw">查看原始回應</summary>
+          <pre id="health">…</pre>
+        </details>
+      </article>
+
+      <article class="card">
+        <div class="section-head" style="margin-top:0">
+          <div>
+            <div class="eyebrow" data-i18n="uptime_view_eyebrow">
+              UPTIME VIEW
+            </div>
+            <h2 data-i18n="uptime_view">即時檢查</h2>
+            <p data-i18n="auto_recheck">每 30 秒自動重新檢查；分頁隱藏時暫停，失敗時逐步延長間隔。</p>
+          </div>
+        </div>
+        <div class="check-timeline">
+          <div class="time-source-card">
+            <div class="eyebrow" data-i18n="time_standard">
+              時間標準
+            </div>
+            <strong data-i18n="hk_standard_time">香港標準時間</strong>
+            <span>HKT · UTC+08:00</span>
+          </div>
+          <div>
+            <span class="timeline-dot"></span>
+            <div>
+              <strong data-i18n="worker_request">Worker 請求</strong>
+              <p data-i18n="worker_request_desc">確認路由回應與執行環境</p>
+            </div>
+          </div>
+          <div>
+            <span class="timeline-dot"></span>
+            <div>
+              <strong data-i18n="db_query">資料庫查詢</strong>
+              <p data-i18n="db_query_desc">確認 Cloudflare D1 連線</p>
+            </div>
+          </div>
+          <div>
+            <span class="timeline-dot"></span>
+            <div>
+              <strong data-i18n="external_services">外部服務</strong>
+              <p data-i18n="external_services_desc">確認 Discord Presence 與 Steam API</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- #4: the last 24 hours of real probe samples, one bar per recorded
+             check (at most one every five minutes). -->
+        <div class="status-history-head">
+          <h3 data-i18n="status_history">過去 24 小時</h3>
+          <p class="tiny" data-i18n="status_history_lead">
+            每 5 分鐘最多記錄一次檢查結果。
+          </p>
+        </div>
+        <div
+          class="status-history"
+          id="status-history"
+          role="img"
+          aria-label="過去 24 小時的檢查紀錄"
+          data-i18n-aria="status_history"
+        ></div>
+        <p class="status-history-note tiny" id="status-history-summary" hidden></p>
+        <p class="status-history-note tiny" id="status-history-empty" data-i18n="status_history_empty">
+          暫時未有歷史資料。
+        </p>
+      </article>
+    </section>
+
+    <section class="card status-api-card">
+      <div class="section-head" style="margin-top:0">
+        <div>
+          <div class="eyebrow" data-i18n="api_surface_eyebrow">
+            API SURFACE
+          </div>
+          <h2 data-i18n="api_surface">可用 API</h2>
+          <p data-i18n="api_surface_lead">網站目前提供的即時資料端點。</p>
+        </div>
+      </div>
+      <div class="api-route-grid">
+        <a href="/api/status" target="_blank" rel="noreferrer">
+          <strong>/api/status</strong>
+          <span data-i18n="api_status_desc">全部服務摘要</span>
+        </a>
+        <a href="/api/health" target="_blank" rel="noreferrer">
+          <strong>/api/health</strong>
+          <span data-i18n="api_health_desc">Worker / D1 健康狀態</span>
+        </a>
+        <a href="/api/time" target="_blank" rel="noreferrer">
+          <strong>/api/time</strong>
+          <span data-i18n="api_time_desc">伺服器時間與 HKT</span>
+        </a>
+        <a href="/api/activity" target="_blank" rel="noreferrer">
+          <strong>/api/activity</strong>
+          <span data-i18n="api_activity_desc">Discord Presence</span>
+        </a>
+        <a href="/api/steam" target="_blank" rel="noreferrer">
+          <strong>/api/steam</strong>
+          <span data-i18n="api_steam_desc">Steam 個人檔案與遊戲狀態</span>
+        </a>
+        <a href="/api/visitors" target="_blank" rel="noreferrer">
+          <strong>/api/visitors</strong>
+          <span data-i18n="api_visitors_desc">訪客統計資料</span>
+        </a>
+        <a href="/api/runtime" target="_blank" rel="noreferrer">
+          <strong>/api/runtime</strong>
+          <span data-i18n="api_system_desc">邊緣節點與執行環境資訊</span>
+        </a>
+      </div>
+    </section>
+  </section>
+
+  <style is:global>
+    /* #4: last-24-hours probe strip. Inline critical styles rather than editing
+       the shared stylesheet: the page owns this element and the bars are created
+       by the inline script. */
+    .status-history-head {
+      margin-top: 18px;
+    }
+
+    .status-history-head h3 {
+      font-size: 0.95rem;
+      margin: 0;
+    }
+
+    .status-history-head p {
+      margin: 2px 0 8px;
+    }
+
+    .status-history {
+      display: flex;
+      align-items: stretch;
+      gap: 2px;
+      width: 100%;
+      height: 26px;
+      overflow-x: auto;
+      padding: 2px;
+      border-radius: 6px;
+      background: color-mix(in srgb, var(--text) 6%, transparent);
+    }
+
+    .status-history-bar {
+      flex: 1 0 3px;
+      min-width: 3px;
+      border-radius: 2px;
+      background: var(--good);
+      opacity: 0.75;
+    }
+
+    .status-history-bar.bad {
+      background: var(--bad);
+    }
+
+    .status-history-bar:hover {
+      opacity: 1;
+    }
+
+    .status-history-note {
+      margin: 8px 0 0;
+    }
+  </style>
+
+  <script is:inline src="/scripts/status-panel.js"></script>
+</BaseLayout>

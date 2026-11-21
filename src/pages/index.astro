@@ -1,0 +1,362 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import FluentIcon from '../components/FluentIcon.astro';
+import PostBadge from '../components/PostBadge.astro';
+import { profile, services, socials } from '../lib/data';
+import { buildMixedFeed } from '../lib/content-feed';
+import { formatHKTDate } from '../lib/time';
+import { t as tr } from '../lib/i18n';
+
+// Prerendered at build time: the frontmatter only reads the content collections,
+// and every live panel (activity, Steam, visitors, service status) is filled in
+// by client scripts from the Worker APIs, so the HTML is request-independent.
+// A new post therefore appears on the homepage after the next deploy, like the
+// prerendered reading routes. Its security headers come from public/_headers,
+// because middleware does not run for static assets.
+export const prerender = true;
+
+// The Discord/Steam buttons link to the real profiles from `src/lib/data.ts`
+// instead of a bare `https://discord.com` / `https://steamcommunity.com`
+// placeholder. The dashboard scripts may replace them later with the
+// API-reported profile URL when one is available.
+const socialUrl = (icon: string) => socials.find((social) => social.icon === icon)?.url ?? '';
+const discordUrl = socialUrl('discord');
+const steamUrl = socialUrl('steam');
+
+// One mixed stream: blog essays and novel chapters are fetched independently,
+// merged, then sorted by the shared `date` field. `buildMixedFeed` also assigns
+// the correct href and badge kind, so the homepage cannot link a chapter to the
+// blog route.
+const [blogEntries, novelEntries] = await Promise.all([
+  getCollection('blog', ({ data }) => !data.draft),
+  getCollection('novel', ({ data }) => !data.draft),
+]);
+const latest = buildMixedFeed(blogEntries, novelEntries, 3);
+---
+
+<BaseLayout
+  titleKey="title_home_full"
+  titleSuffix={false}
+  description={profile.bio}
+  preconnectOrigins={[
+    'https://cdn.discordapp.com',
+    'https://avatars.steamstatic.com',
+    'https://storage.ko-fi.com',
+    'https://liberapay.com',
+  ]}
+>
+  <section class="hero">
+    <div>
+      <div class="eyebrow">PERSONAL SPACE · {profile.handle}</div>
+      <h1>
+        {profile.name}
+        <br />
+        <span class="muted">on the web.</span>
+      </h1>
+      <p class="lead" data-i18n="hero_lead">
+        {profile.tagline}。這裡放網誌、即時活動、Discord、Steam 與服務狀態。
+      </p>
+      <div class="actions">
+        <a class="btn primary" href="/posts" data-i18n="read_blog">
+          閱讀文章
+          <FluentIcon name="arrow-right" size={16} />
+        </a>
+        <a class="btn" href="/status" data-i18n="view_status">
+          查看狀態
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <div class="section-head">
+    <div>
+      <div class="eyebrow">OVERVIEW</div>
+      <h2 data-i18n="everything_one_place">Everything in one place.</h2>
+      <p data-i18n="small_panels">幾個會定期更新的小面板。</p>
+    </div>
+  </div>
+  <section class="grid">
+    <div class="card wide">
+      <div class="section-head" style="margin-top:0">
+        <div>
+          <h2 data-i18n="latest_posts">最新文章</h2>
+          <p data-i18n="recent_writing">最近寫下的內容。</p>
+        </div>
+        <a class="btn" href="/posts" data-i18n="all_posts">
+          全部文章 <FluentIcon name="arrow-right" size={16} />
+        </a>
+      </div>
+      {latest.map((item) => (
+        <article class="post">
+          <div class="post-meta">
+            <PostBadge kind={item.kind} />
+            <time datetime={item.date.toISOString()}>{formatHKTDate(item.date)}</time>
+            <span>·</span>
+            <span>{item.meta}</span>
+          </div>
+          <h3>
+            <a href={item.href}>{item.title}</a>
+          </h3>
+          <div class="muted">{item.description}</div>
+          <div class="tags">
+            {item.tags.map((tag) => (
+              <span class="tag">#{tag}</span>
+            ))}
+          </div>
+        </article>
+      ))}
+    </div>
+
+    <div class="social-status-stack">
+      <aside class="card activity-card" aria-label="Discord 即時活動">
+        <div id="art-bg" class="art-bg" aria-hidden="true"></div>
+        <div class="activity-head">
+          <div>
+            <div class="eyebrow">DISCORD PRESENCE</div>
+            <div id="activity-type" class="tiny" style="margin-top:4px" data-i18n="discord_presence">
+              Discord 活動
+            </div>
+          </div>
+          <span class="status-pill">
+            <span class="pulse"></span>&nbsp;
+            <span id="activity-status" data-i18n="reading">
+              讀取中
+            </span>
+          </span>
+        </div>
+        <div id="activity" class="rich-presence no-art">
+          <div class="activity-visual">
+            <div class="activity-art-wrap" hidden>
+              {/* No placeholder art: the wrapper stays hidden until the
+                  dashboard script assigns a real artwork URL (and it hides the
+                  wrapper again if that image fails to load), so there is no
+                  request for an asset that does not exist. */}
+              <img id="activity-image" class="activity-art" alt="活動圖片" data-i18n-alt="activity_image" />
+              <img id="activity-avatar" class="activity-avatar-overlay" src="" alt="" hidden />
+            </div>
+            <img
+              id="activity-avatar-empty"
+              class="activity-avatar-overlay activity-avatar-empty"
+              src=""
+              alt=""
+              hidden
+            />
+          </div>
+          <div class="rich-presence-copy">
+            <div id="activity-name" class="activity-name" data-i18n="discord_activity_loading">
+              讀取 Discord 活動中…
+            </div>
+            <div id="activity-state" class="activity-state"></div>
+            <div id="activity-detail" class="activity-detail" data-i18n="connecting_lanyard">
+              正在連線至 Lanyard…
+            </div>
+            <div id="activity-custom" class="activity-custom" hidden></div>
+            <div id="activity-devices" class="activity-devices" hidden></div>
+            <div id="activity-elapsed" class="activity-elapsed">
+              —
+            </div>
+            <div id="activity-buttons" class="activity-buttons"></div>
+          </div>
+        </div>
+        <div id="activity-secondary" class="activity-secondary" hidden>
+          <div class="activity-secondary-head">
+            <div id="activity-secondary-type" class="activity-type" data-i18n="type_listening">
+              LISTENING
+            </div>
+          </div>
+          <div class="activity-secondary-media">
+            <img id="activity-secondary-image" class="activity-secondary-image" src="" alt="" hidden />
+            <div class="activity-secondary-copy">
+              <div id="activity-secondary-name" class="activity-name"></div>
+              <div id="activity-secondary-state" class="activity-state"></div>
+              <div id="activity-secondary-detail" class="activity-detail"></div>
+              <div id="activity-secondary-elapsed" class="activity-elapsed">
+                —
+              </div>
+            </div>
+          </div>
+        </div>
+        <div id="activity-updated" class="tiny" style="margin-top:14px" data-i18n="live_presence">
+          即時 Presence · 自動更新中
+        </div>
+        <div class="activity-footer">
+          <a
+            id="activity-discord-link"
+            class="activity-profile-btn"
+            href={discordUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            data-i18n="open_discord_profile"
+          >
+            開啟 Discord 個人檔案 <FluentIcon name="arrow-up-right" size={16} />
+          </a>
+          <span class="tiny" data-i18n="source_lanyard">
+            來源：Lanyard
+          </span>
+        </div>
+      </aside>
+
+      <aside class="card activity-card" aria-label="Steam 即時狀態">
+        <div id="steam-art-bg" class="art-bg" aria-hidden="true"></div>
+        <div class="activity-head">
+          <div>
+            <div class="eyebrow">STEAM PRESENCE</div>
+            <div id="steam-activity-type" class="tiny" style="margin-top:4px" data-i18n="steam_presence">
+              Steam 狀態
+            </div>
+          </div>
+          <span class="status-pill">
+            <span class="pulse"></span>&nbsp;
+            <span id="steam-status" data-i18n="reading">
+              讀取中
+            </span>
+          </span>
+        </div>
+        <div id="steam-activity" class="rich-presence no-art">
+          <div class="activity-visual">
+            <div class="activity-art-wrap" hidden>
+              {/* Placeholder art likewise omitted; the Steam renderer only
+                  unhides this wrapper once it has a real artwork URL. */}
+              <img id="steam-game-image" class="activity-art" alt="Steam 遊戲圖片" data-i18n-alt="steam_game_image" />
+              <img id="steam-avatar-overlay" class="activity-avatar-overlay" src="" alt="" hidden />
+            </div>
+            <img id="steam-avatar-empty" class="activity-avatar-overlay activity-avatar-empty" src="" alt="" hidden />
+          </div>
+          <div class="rich-presence-copy">
+            <div id="steam-player-name" class="activity-name" data-i18n="steam_loading">
+              讀取 Steam 狀態中…
+            </div>
+            <div id="steam-game-name" class="activity-state"></div>
+            <div id="steam-game-detail" class="activity-detail" data-i18n="connecting_steam">
+              正在連線至 Steam…
+            </div>
+            <div id="steam-playtime" class="activity-elapsed">
+              —
+            </div>
+          </div>
+        </div>
+        <div id="steam-updated" class="tiny" style="margin-top:14px" data-i18n="steam_updated">
+          Steam Web API · 每 60 秒更新
+        </div>
+        <div id="steam-recent" class="steam-recent" hidden>
+          <div class="tiny" data-i18n="recently_played">
+            最近玩過
+          </div>
+          <div id="steam-recent-list" class="steam-recent-list"></div>
+        </div>
+        <div class="activity-footer">
+          <a
+            id="steam-profile-link"
+            class="activity-profile-btn"
+            href={steamUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            data-i18n="open_steam_profile"
+          >
+            開啟 Steam 個人檔案 <FluentIcon name="arrow-up-right" size={16} />
+          </a>
+          <span class="tiny" data-i18n="source_steam">
+            來源：Steam
+          </span>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <div class="section-head">
+    <div>
+      <div class="eyebrow">LIVE DATA</div>
+      <h2 data-i18n="small_signals">Small signals.</h2>
+      <p data-i18n="live_from_api">從 Worker API 取得的即時資料。</p>
+    </div>
+  </div>
+  <section class="grid dashboard-grid">
+    <div class="card visitor-dashboard">
+      <div class="card-heading">
+        <div>
+          <h3 data-i18n="visitors">訪客</h3>
+          <p class="muted" data-i18n="last_7_days">
+            最近 30 天的流量；總覽為最近 180 天。
+          </p>
+        </div>
+        <span class="live-dot"></span>
+      </div>
+      <div class="stat-row visitor-stats">
+        <div class="stat">
+          <div class="metric" id="visitor-total">
+            —
+          </div>
+          <div class="metric-label" data-i18n="total_views">
+            最近 180 天總瀏覽量
+          </div>
+        </div>
+        <div class="stat">
+          <div class="metric" id="visitor-unique">
+            —
+          </div>
+          <div class="metric-label" data-i18n="unique_visitors">
+            最近 180 天不重複訪客
+          </div>
+        </div>
+        <div class="stat">
+          <div class="metric" id="visitor-24h">
+            —
+          </div>
+          <div class="metric-label" data-i18n="last_24h">
+            最近 24 小時
+          </div>
+        </div>
+        <div class="stat">
+          <div class="metric" id="visitor-7d">
+            —
+          </div>
+          <div class="metric-label" data-i18n="last_7d">
+            最近 30 天
+          </div>
+        </div>
+      </div>
+      <div id="visitor-chart" class="bar-chart" aria-label="最近 30 天瀏覽量" data-i18n-aria="views_7d"></div>
+      <div class="visitor-breakdown">
+        <div id="visitor-paths" class="top-paths"></div>
+        <div id="visitor-countries" class="top-paths"></div>
+        <div id="visitor-referrers" class="top-paths"></div>
+      </div>
+    </div>
+
+    <div class="card website-status-dashboard">
+      <div class="section-head" style="margin-top:0">
+        <div>
+          <h2 data-i18n="website_status">Website Status</h2>
+          <p data-i18n="service_overview">服務狀態總覽。</p>
+        </div>
+        <span id="homepage-status-badge" class="social-status-badge is-loading" data-i18n="reading">
+          讀取中
+        </span>
+      </div>
+      <div id="homepage-services">
+        {services.map((service) => (
+          <div class="service" data-home-service={service.key}>
+            <div class="service-main">
+              <strong data-i18n={service.id}>{tr('zh', service.id)}</strong>
+              <span class="service-desc" data-i18n={service.descId}>
+                {tr('zh', service.descId)}
+              </span>
+            </div>
+            <span class="service-status warn">
+              <span class="pulse"></span>
+              <span data-i18n="reading">{tr('zh', 'reading')}</span>
+            </span>
+          </div>
+        ))}
+      </div>
+      <a class="btn" style="margin-top:14px" href="/status" data-i18n="open_full_status">
+        開啟完整狀態 <FluentIcon name="arrow-right" size={16} />
+      </a>
+    </div>
+  </section>
+
+  <!-- Swup re-runs this script (reloadScripts: true) after every navigation,
+       which re-initialises the dashboard through window.__bmHomeCleanup. -->
+  <script is:inline src="/scripts/home-bootstrap.js"></script>
+</BaseLayout>

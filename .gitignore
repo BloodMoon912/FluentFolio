@@ -1,0 +1,48 @@
+node_modules/
+dist/
+.wrangler/
+.dev.vars
+.env
+.env.*
+!.env.example
+.env.local
+.env.*.local
+.astro/
+.DS_Store
+
+# Optional private-content mode (docs/PRIVATE-CONTENT-REPO.md): to keep your
+# writing in a separate private repository, uncomment the next line.
+# /src/content/
+update-status.cmd
+
+# Local tooling
+.opencode/
+
+# Harness-managed local skills and context (session bootstrap/handoff).
+.dsh/
+
+# The codegraph skill's local index (machine-generated, never committed).
+.codegraph/
+
+# Local environment / secrets
+.envrc
+.direnv
+*.local
+
+# IDE / editor
+.vscode/
+.idea/
+*.swp
+
+# Logs & temp
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.cache/
+.tmp/
+tmp/
+temp/
+
+# A workspace-local npm cache, used when the machine's default cache is not writable.
+.npm-cache/

@@ -1,0 +1,30 @@
+# Build output and local state.
+dist/
+.astro/
+.wrangler/
+node_modules/
+
+# Harness-managed local skills and context. Not part of the project, never
+# committed (see .gitignore), and not ours to reformat.
+.dsh/
+
+# Managed by npm.
+package-lock.json
+
+# Imported reference material with its own deliberate structure — 85 numbered
+# sections, one H1 each. Reformatting it would be churn, not improvement.
+# The skip is by filename, so it keeps applying now that the file lives in docs/.
+Fluent_UI_Design_Motion_Guidelines_for_Astro.md
+
+# Cloudflare's header rules file has no filename extension, so Prettier cannot
+# infer a parser for it. It is edited by hand.
+public/_headers
+
+# Published posts are authored through the admin CMS, which runs its own
+# markdownlint. Tooling must not rewrite content that has already shipped.
+src/content/
+
+# Copies of those CMS-authored posts used as dev fixtures. `scripts/seed-mock-content.mjs`
+# copies them into src/content byte for byte, so formatting them here would make
+# the fixture and the seeded entry drift apart.
+tests/fixtures/

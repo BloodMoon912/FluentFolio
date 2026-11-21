@@ -1,0 +1,31 @@
+---
+// Thin reading-progress bar pinned to the top of the viewport.
+//
+// Presented as a progressbar for assistive technology (name + valuemin/max/now
+// are kept in sync by the script below). The fill itself is decorative and
+// animated with `transform: scaleX()` so it stays on the compositor.
+//
+// Served from public/scripts/reading-progress.js so Swup re-runs it on
+// navigation, which is what re-measures the new page. The listener itself is
+// bound once (module scope guard) so repeated navigations cannot stack handlers.
+interface Props {
+  label?: string;
+}
+
+const { label = '閱讀進度' } = Astro.props;
+---
+
+<div
+  class="reading-progress"
+  role="progressbar"
+  aria-label={label}
+  aria-valuemin={0}
+  aria-valuemax={100}
+  aria-valuenow={0}
+  aria-valuetext="0%"
+  data-reading-progress
+>
+  <span class="reading-progress__bar" id="reading-progress-bar"></span>
+</div>
+
+<script is:inline src="/scripts/reading-progress.js"></script>

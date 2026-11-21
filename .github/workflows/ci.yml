@@ -1,0 +1,44 @@
+name: Validate Astro build
+
+# Least privilege: this workflow only reads the repository. Without an explicit
+# block the job's GITHUB_TOKEN inherits whatever the repository default is, which
+# is writable in many configurations, and nothing here needs to write.
+permissions:
+  contents: read
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.23.4
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Type-check
+        run: npm run check
+      - name: Type-check browser scripts
+        run: npm run check:public
+      - name: Lint Markdown docs
+        run: npm run lint
+      - name: Validate Markdown content
+        run: npm run validate:md
+      - name: Check formatting
+        run: npm run format:check
+      - name: Unit tests
+        run: npm test
+      - name: Build
+        run: npm run build
+      - name: Check for executable inline scripts
+        run: npm run check:inline-scripts

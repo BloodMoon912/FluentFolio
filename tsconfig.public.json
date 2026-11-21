@@ -1,0 +1,20 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "lib": ["ESNext", "DOM", "DOM.Iterable"],
+    "allowJs": true,
+    "checkJs": true,
+    "noEmit": true,
+    "strict": true,
+    "types": []
+  },
+  // `public/scripts/*.js` is copied verbatim into dist/ and never bundled, so
+  // the main `astro check` program deliberately excludes `public/`. This
+  // separate program type-checks those browser scripts on their own terms.
+  // `src/page-globals.d.ts` is ambient-only (no imports) and supplies the
+  // `window.T` / `window.getLang` helpers the shell script installs.
+  "include": ["public/scripts/**/*.js", "src/page-globals.d.ts", "types/public-scripts.d.ts"],
+  // The inherited `exclude` still lists `public`, and TypeScript applies the
+  // inherited exclude even though `include` names those files.
+  "exclude": ["dist"]
+}

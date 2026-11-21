@@ -1,0 +1,67 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { t as tr } from '../lib/i18n';
+
+// Prerendered at build time: the page only reads the static i18n dictionaries,
+// so nothing is request-scoped and no Worker invocation is needed. The static
+// response's security headers live in public/_headers (middleware does not run
+// for static assets).
+export const prerender = true;
+---
+
+<BaseLayout titleKey="title_privacy" description={tr('zh', 'privacy_intro')}>
+  <section class="page legal-page">
+    <div class="eyebrow">PRIVACY</div>
+    <h1 class="page-title" data-i18n="title_privacy">
+      {tr('zh', 'title_privacy')}
+    </h1>
+    <p class="lead" data-i18n="privacy_intro">
+      {tr('zh', 'privacy_intro')}
+    </p>
+    <p class="legal-owner" data-i18n="legal_owner">
+      {tr('zh', 'legal_owner')}
+    </p>
+    <div class="legal-meta">
+      <span data-i18n="legal_effective">{tr('zh', 'legal_effective')}</span>
+      <span data-i18n="legal_reviewed">{tr('zh', 'legal_reviewed')}</span>
+    </div>
+    <article class="card legal-card">
+      <section>
+        <h2 data-i18n="privacy_collection_title">{tr('zh', 'privacy_collection_title')}</h2>
+        <p data-i18n="privacy_collection_body">{tr('zh', 'privacy_collection_body')}</p>
+      </section>
+      <section>
+        <h2 data-i18n="privacy_purpose_title">{tr('zh', 'privacy_purpose_title')}</h2>
+        <p data-i18n="privacy_purpose_body">{tr('zh', 'privacy_purpose_body')}</p>
+      </section>
+      <section>
+        <h2 data-i18n="privacy_thirdparty_title">{tr('zh', 'privacy_thirdparty_title')}</h2>
+        <p data-i18n="privacy_thirdparty_body">{tr('zh', 'privacy_thirdparty_body')}</p>
+      </section>
+      <section>
+        <h2 data-i18n="privacy_local_title">{tr('zh', 'privacy_local_title')}</h2>
+        <p data-i18n="privacy_local_body">{tr('zh', 'privacy_local_body')}</p>
+      </section>
+      <section>
+        <h2 data-i18n="privacy_retention_title">{tr('zh', 'privacy_retention_title')}</h2>
+        <p data-i18n="privacy_retention_body">{tr('zh', 'privacy_retention_body')}</p>
+      </section>
+      <section>
+        <h2 data-i18n="privacy_security_title">{tr('zh', 'privacy_security_title')}</h2>
+        <p data-i18n="privacy_security_body">{tr('zh', 'privacy_security_body')}</p>
+      </section>
+      <section>
+        <h2 data-i18n="privacy_rights_title">{tr('zh', 'privacy_rights_title')}</h2>
+        <p data-i18n="privacy_rights_body">{tr('zh', 'privacy_rights_body')}</p>
+      </section>
+      <section>
+        <h2 data-i18n="privacy_revision_title">{tr('zh', 'privacy_revision_title')}</h2>
+        <p data-i18n="privacy_revision_body">{tr('zh', 'privacy_revision_body')}</p>
+      </section>
+      <section>
+        <h2 data-i18n="privacy_contact_title">{tr('zh', 'privacy_contact_title')}</h2>
+        <p data-i18n="privacy_contact_body">{tr('zh', 'privacy_contact_body')}</p>
+      </section>
+    </article>
+  </section>
+</BaseLayout>

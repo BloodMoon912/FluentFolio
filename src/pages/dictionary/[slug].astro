@@ -1,0 +1,120 @@
+---
+import { getCollection, getEntry, render } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import FluentIcon from '../../components/FluentIcon.astro';
+import { chapterLabel } from '../../lib/content-feed';
+import { chaptersMentioning } from '../../lib/lore';
+import { COPY_MAX_CHARS, isCopyProtected } from '../../lib/copy-protection';
+import { t as tr } from '../../lib/i18n';
+
+// Wiki entry pages are prerendered: the backlink index and the related-word list
+// are both derived from the content collections, so the page is build-time only.
+// `entry.id` is both the URL segment and the id used by the reverse index.
+export const prerender = true;
+
+/**
+ * One page per published dictionary entry. The id doubles as the `[slug]` param
+ * and as the value stored in `relatedLore` / `relatedWords`, so backlinks and
+ * related links resolve to generated pages.
+ */
+export async function getStaticPaths() {
+  const entries = await getCollection('dictionary', ({ data }) => !data.draft);
+  return entries.map((entry) => ({ params: { slug: entry.id } }));
+}
+
+const { slug } = Astro.params;
+
+// Unreachable at build time: `getStaticPaths` only enumerates published entries.
+// Kept as a defensive guard so a future route change degrades to a redirect
+// instead of a render error.
+if (!slug) {
+  return Astro.redirect('/dictionary');
+}
+
+const entry = await getEntry('dictionary', slug);
+
+if (!entry || entry.data.draft) {
+  return Astro.redirect('/404');
+}
+
+const { Content } = await render(entry);
+const { word, ipa, partOfSpeech, definition, etymology, relatedWords } = entry.data;
+
+// Reverse index: every published chapter whose frontmatter lists this entry in
+// `relatedLore`. Derived here rather than stored, so it can never drift.
+const novelEntries = await getCollection('novel', ({ data }) => !data.draft);
+const mentions = chaptersMentioning(entry.id, novelEntries);
+const copyProtected = isCopyProtected('dictionary', entry.data.copyProtect);
+
+const relatedEntries =
+  relatedWords.length > 0
+    ? (await getCollection('dictionary', ({ data }) => !data.draft)).filter((candidate) =>
+        relatedWords.includes(candidate.id),
+      )
+    : [];
+---
+
+<BaseLayout title={`${word} · ${tr('zh', 'title_dictionary')}`} description={definition}>
+  <article class="page">
+    <a class="back-link" href="/dictionary">
+      <FluentIcon name="arrow-left" size={16} class="back-link-icon" />
+      {tr('zh', 'title_dictionary')}
+    </a>
+
+    <header class="post-header">
+      <div class="eyebrow">{tr('zh', 'dictionary_eyebrow')}</div>
+      <h1 class="page-title">{word}</h1>
+      <p class="lead">{definition}</p>
+    </header>
+
+    <dl class="entry-facts">
+      {ipa && (
+        <>
+          <dt>{tr('zh', 'dictionary_ipa')}</dt>
+          <dd>{ipa}</dd>
+        </>
+      )}
+      <dt>{tr('zh', 'dictionary_pos')}</dt>
+      <dd>{partOfSpeech}</dd>
+      {etymology && (
+        <>
+          <dt>{tr('zh', 'dictionary_etymology')}</dt>
+          <dd>{etymology}</dd>
+        </>
+      )}
+    </dl>
+
+    <div class="markdown-content" data-copy-protect={copyProtected ? 'true' : undefined} data-copy-max={COPY_MAX_CHARS}>
+      <Content />
+    </div>
+
+    {relatedEntries.length > 0 && (
+      <section class="entry-section">
+        <h2>{tr('zh', 'dictionary_related')}</h2>
+        <div class="entry-related">
+          {relatedEntries.map((related) => (
+            <a class="tag" href={`/dictionary/${related.id}`}>
+              {related.data.word}
+            </a>
+          ))}
+        </div>
+      </section>
+    )}
+
+    <section class="backlinks" aria-label={tr('zh', 'dictionary_backlinks')}>
+      <h2>{tr('zh', 'dictionary_backlinks')}</h2>
+      {mentions.length === 0 ? (
+        <p class="muted">{tr('zh', 'no_backlinks')}</p>
+      ) : (
+        <ul class="backlinks__list">
+          {mentions.map((chapter) => (
+            <li>
+              <a href={`/posts/novel/${chapter.id}`}>{chapter.data.title}</a>
+              <span class="muted"> · {chapterLabel(chapter.data.volume, chapter.data.chapter)}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  </article>
+</BaseLayout>

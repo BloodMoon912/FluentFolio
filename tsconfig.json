@@ -1,0 +1,13 @@
+{
+  "extends": "astro/tsconfigs/strict",
+  "compilerOptions": {
+    "allowJs": true,
+    "checkJs": true
+  },
+  // `public/` is copied verbatim into dist/ and is never compiled, so its
+  // browser-only scripts are not part of the type-checked program even though
+  // `checkJs` is on for everything under src/. Without this, `astro check`
+  // reports the DOM-typing errors in public/scripts/turnstile-client.js
+  // (`window.turnstile`, `Element.dataset`, …) that no build ever sees.
+  "exclude": ["dist", "public"]
+}

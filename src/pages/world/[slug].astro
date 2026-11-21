@@ -1,0 +1,106 @@
+---
+import { getCollection, getEntry, render } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import FluentIcon from '../../components/FluentIcon.astro';
+import { chapterLabel } from '../../lib/content-feed';
+import { chaptersMentioningWorld } from '../../lib/lore';
+import { COPY_MAX_CHARS, isCopyProtected } from '../../lib/copy-protection';
+import { t as tr } from '../../lib/i18n';
+
+// Wiki entry pages are prerendered: the backlink index and the related-entry list
+// are both derived from the content collections, so the page is build-time only.
+// `entry.id` is both the URL segment and the id used by the reverse index.
+export const prerender = true;
+
+/**
+ * One page per published world entry. The id doubles as the `[slug]` param and
+ * as the value stored in `relatedLore` / `relatedEntries`, so backlinks and
+ * related links resolve to generated pages.
+ */
+export async function getStaticPaths() {
+  const entries = await getCollection('world', ({ data }) => !data.draft);
+  return entries.map((entry) => ({ params: { slug: entry.id } }));
+}
+
+const { slug } = Astro.params;
+
+// Unreachable at build time: `getStaticPaths` only enumerates published entries.
+// Kept as a defensive guard so a future route change degrades to a redirect
+// instead of a render error.
+if (!slug) {
+  return Astro.redirect('/world');
+}
+
+const entry = await getEntry('world', slug);
+
+if (!entry || entry.data.draft) {
+  return Astro.redirect('/404');
+}
+
+const { Content } = await render(entry);
+const { title, type, description, relatedEntries } = entry.data;
+
+const novelEntries = await getCollection('novel', ({ data }) => !data.draft);
+const mentions = chaptersMentioningWorld(entry.id, novelEntries);
+const copyProtected = isCopyProtected('world', entry.data.copyProtect);
+
+const related =
+  relatedEntries.length > 0
+    ? (await getCollection('world', ({ data }) => !data.draft)).filter((candidate) =>
+        relatedEntries.includes(candidate.id),
+      )
+    : [];
+---
+
+<BaseLayout title={`${title} · ${tr('zh', 'title_world')}`} description={description}>
+  <article class="page">
+    <a class="back-link" href="/world">
+      <FluentIcon name="arrow-left" size={16} class="back-link-icon" />
+      {tr('zh', 'title_world')}
+    </a>
+
+    <header class="post-header">
+      <div class="eyebrow">{tr('zh', 'world_eyebrow')}</div>
+      <h1 class="page-title">{title}</h1>
+      <p class="lead">{description}</p>
+    </header>
+
+    <dl class="entry-facts">
+      <dt>{tr('zh', 'world_type')}</dt>
+      <dd>{type}</dd>
+    </dl>
+
+    <div class="markdown-content" data-copy-protect={copyProtected ? 'true' : undefined} data-copy-max={COPY_MAX_CHARS}>
+      <Content />
+    </div>
+
+    {related.length > 0 && (
+      <section class="entry-section">
+        <h2>{tr('zh', 'world_related')}</h2>
+        <div class="entry-related">
+          {related.map((item) => (
+            <a class="tag" href={`/world/${item.id}`}>
+              {item.data.title}
+            </a>
+          ))}
+        </div>
+      </section>
+    )}
+
+    <section class="backlinks" aria-label={tr('zh', 'world_backlinks')}>
+      <h2>{tr('zh', 'world_backlinks')}</h2>
+      {mentions.length === 0 ? (
+        <p class="muted">{tr('zh', 'no_backlinks')}</p>
+      ) : (
+        <ul class="backlinks__list">
+          {mentions.map((chapter) => (
+            <li>
+              <a href={`/posts/novel/${chapter.id}`}>{chapter.data.title}</a>
+              <span class="muted"> · {chapterLabel(chapter.data.volume, chapter.data.chapter)}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  </article>
+</BaseLayout>

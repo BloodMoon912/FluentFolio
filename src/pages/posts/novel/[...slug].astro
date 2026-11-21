@@ -1,0 +1,166 @@
+---
+import { getCollection, getEntry, render } from 'astro:content';
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import FluentIcon from '../../../components/FluentIcon.astro';
+import PostBadge from '../../../components/PostBadge.astro';
+import ReadingProgress from '../../../components/ReadingProgress.astro';
+import TOC from '../../../components/TOC.astro';
+import { chapterLabel, novelNeighbours } from '../../../lib/content-feed';
+import { COPY_MAX_CHARS, isCopyProtected } from '../../../lib/copy-protection';
+import { formatHKTDate } from '../../../lib/time';
+import { profile } from '../../../lib/data';
+import { t as tr } from '../../../lib/i18n';
+
+// Reading pages are prerendered: one static HTML file per published chapter,
+// built from the content collections. `getEntry`/`render` and the previous/next
+// lookup below all run at build time; nothing here reads the request.
+export const prerender = true;
+
+/**
+ * One page per published chapter. `entry.id` (not `order`) is the URL segment:
+ * it is the same id `getEntry` and `novelNeighbours` use, so chapter links and
+ * the chapter dock keep pointing at generated pages.
+ */
+export async function getStaticPaths() {
+  const chapters = await getCollection('novel', ({ data }) => !data.draft);
+  return chapters.map((entry) => ({ params: { slug: entry.id } }));
+}
+
+const { slug } = Astro.params;
+
+// Unreachable at build time: `getStaticPaths` only enumerates published entries,
+// and the empty path is not generated. Kept as a defensive guard so a future
+// route change degrades to a redirect instead of a render error.
+if (!slug) {
+  return Astro.redirect('/posts?tab=novel');
+}
+
+const chapter = await getEntry('novel', slug);
+
+if (!chapter || chapter.data.draft) {
+  return Astro.redirect('/404');
+}
+
+const { Content, headings } = await render(chapter);
+const { title, volume, chapter: chapterNumber, date, author, tags, description } = chapter.data;
+
+const allChapters = await getCollection('novel', ({ data }) => !data.draft);
+const { prev, next } = novelNeighbours(allChapters, chapter.id);
+const copyProtected = isCopyProtected('novel', chapter.data.copyProtect);
+---
+
+<BaseLayout
+  title={`${title} · ${profile.nameShort}`}
+  description={description || `${volume} · ${tr('zh', 'chapter_short', String(chapterNumber))}`}
+  ogImage={chapter.id.includes('/') ? '/og.png' : `/og/${chapter.id}.png`}
+>
+  <ReadingProgress />
+
+  <article class="page post-page novel-page">
+    <div class="article-back">
+      <a class="back-link" href="/posts?tab=novel" data-i18n="back_to_posts">
+        <FluentIcon name="arrow-left" size={16} class="back-link-icon" />
+        {tr('zh', 'back_to_posts')}
+      </a>
+    </div>
+
+    <div class="article-layout">
+      <TOC headings={headings} label={tr('zh', 'toc_label')} />
+
+      <div class="article-main">
+        <header class="post-header">
+          <div class="eyebrow">
+            <PostBadge kind="novel" />
+            <span>{chapterLabel(volume, chapterNumber)}</span>
+          </div>
+          <h1 class="page-title">{title}</h1>
+          <div class="post-meta post-byline">
+            <span>{author}</span>
+            <span>·</span>
+            <time datetime={date.toISOString()}>{formatHKTDate(date)}</time>
+          </div>
+          {tags.length > 0 && (
+            <div class="tags">
+              {tags.map((tag) => (
+                <span class="tag">#{tag}</span>
+              ))}
+            </div>
+          )}
+        </header>
+
+        <div
+          class="markdown-content novel-content"
+          data-novel-content
+          data-copy-protect={copyProtected ? 'true' : undefined}
+          data-copy-max={COPY_MAX_CHARS}
+        >
+          <Content />
+        </div>
+      </div>
+    </div>
+
+    <!-- Sticky reading dock: previous / index / next. It sticks to the viewport
+         bottom while the chapter is on screen and settles into normal flow at
+         the end of the article, so it never covers the footer. -->
+    <nav class="chapter-dock" aria-label={tr('zh', 'chapter_nav')}>
+      {prev ? (
+        <a
+          class="chapter-dock__link chapter-dock__link--prev"
+          href={`/posts/novel/${prev.id}`}
+          rel="prev"
+          title={prev.data.title}
+        >
+          <span class="chapter-dock__nav">
+            <FluentIcon name="arrow-left" size={15} />
+            <span class="chapter-dock__label" data-i18n="prev_chapter">
+              {tr('zh', 'prev_chapter')}
+            </span>
+          </span>
+          <span class="chapter-dock__title">{prev.data.title}</span>
+        </a>
+      ) : (
+        <span class="chapter-dock__link chapter-dock__link--prev is-disabled" aria-disabled="true">
+          <span class="chapter-dock__nav">
+            <FluentIcon name="arrow-left" size={15} />
+            <span class="chapter-dock__label" data-i18n="prev_chapter">
+              {tr('zh', 'prev_chapter')}
+            </span>
+          </span>
+        </span>
+      )}
+
+      <a class="chapter-dock__link chapter-dock__link--index" href="/posts?tab=novel">
+        <FluentIcon name="book" size={15} />
+        <span class="chapter-dock__label" data-i18n="chapter_index">
+          {tr('zh', 'chapter_index')}
+        </span>
+      </a>
+
+      {next ? (
+        <a
+          class="chapter-dock__link chapter-dock__link--next"
+          href={`/posts/novel/${next.id}`}
+          rel="next"
+          title={next.data.title}
+        >
+          <span class="chapter-dock__nav">
+            <span class="chapter-dock__label" data-i18n="next_chapter">
+              {tr('zh', 'next_chapter')}
+            </span>
+            <FluentIcon name="arrow-right" size={15} />
+          </span>
+          <span class="chapter-dock__title">{next.data.title}</span>
+        </a>
+      ) : (
+        <span class="chapter-dock__link chapter-dock__link--next is-disabled" aria-disabled="true">
+          <span class="chapter-dock__nav">
+            <span class="chapter-dock__label" data-i18n="next_chapter">
+              {tr('zh', 'next_chapter')}
+            </span>
+            <FluentIcon name="arrow-right" size={15} />
+          </span>
+        </span>
+      )}
+    </nav>
+  </article>
+</BaseLayout>

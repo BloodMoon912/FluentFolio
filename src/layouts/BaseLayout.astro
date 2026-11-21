@@ -1,0 +1,442 @@
+---
+import '../styles/global.css';
+import { getEntry } from 'astro:content';
+import { Image, getImage } from 'astro:assets';
+import backgroundImage from '../assets/background.webp';
+import { profile, socials, supportLinks } from '../lib/data';
+import { getI18NDict, t as tr } from '../lib/i18n';
+import FluentIcon from '../components/FluentIcon.astro';
+import Seo from '../components/Seo.astro';
+import SiteSearch from '../components/SiteSearch.astro';
+import { buildArticleJsonLd, buildWebsiteJsonLd, type ArticleSeo } from '../lib/seo';
+import { serializeForInlineScript } from '../lib/safe-json';
+
+const I18N_JSON = serializeForInlineScript(getI18NDict());
+const {
+  title = 'FluentFolio · Personal Space',
+  titleKey = '',
+  // A page may supply a complete title of its own (the homepage's
+  // "我的個人空間 | FluentFolio") instead of the usual "<title> · FluentFolio" form.
+  // The inline script reads the same flag back from `data-title-suffix`, so
+  // `applyLang()` cannot re-add the suffix after the language toggle.
+  titleSuffix = true,
+  description = 'Personal website, blog, activity and service status.',
+  ogImage = '/og.png',
+  ogType = 'website',
+  ogImageAlt = '',
+  preconnectOrigins = [],
+} = Astro.props;
+const currentPath = Astro.url.pathname;
+
+// One list drives both the desktop nav and the mobile menu. `exact` items are
+// active only on their own path; the others also cover everything beneath them
+// (`/posts` stays active on `/posts/blog/…`). The same rule is mirrored in
+// public/scripts/site-shell.js for in-app (swup) navigation.
+const navItems = [
+  { href: '/', key: 'brand_home', exact: true },
+  { href: '/posts', key: 'brand_posts', exact: false },
+  { href: '/dictionary', key: 'brand_dictionary', exact: false },
+  { href: '/world', key: 'brand_world', exact: false },
+  { href: '/status', key: 'brand_status', exact: true },
+  { href: '/about', key: 'brand_about', exact: true },
+].map((item) => ({
+  ...item,
+  active: item.exact ? currentPath === item.href : currentPath === item.href || currentPath.startsWith(`${item.href}/`),
+}));
+const siteSuffix = profile.nameShort;
+const pageTitle = titleKey ? (titleSuffix ? `${tr('zh', titleKey)} · ${siteSuffix}` : tr('zh', titleKey)) : title;
+const canonicalUrl = new URL(currentPath, Astro.site ?? Astro.url.origin).toString();
+const ogImageUrl = new URL(ogImage, Astro.site ?? Astro.url.origin).toString();
+const siteOrigin = (Astro.site ?? Astro.url).origin;
+
+// The Report-Only CSP policy is nonce-free: every executable script loads
+// from /scripts/… under 'self'. There is no per-request nonce to thread through
+// the layout, so Worker-rendered and prerendered pages get the same policy.
+
+// The background is a single content-hashed WebP produced at build time by
+// astro:assets (see `imageService: 'compile'` in astro.config.mjs), rather than a
+// raw file copied from `public/`. `bgPoster` reuses the same transform for the
+// video's poster frame, so the video can still paint before it starts playing.
+const BACKGROUND_WIDTHS = [640, 1280, 1920];
+const bgPoster = await getImage({ src: backgroundImage, width: 1920, format: 'webp', quality: 80 });
+
+// Reading pages (`/posts/blog/[slug]`, `/posts/novel/[slug]`) already pass their
+// title/description/ogImage. The article-only metadata — publication and
+// modification timestamps, author, section, tags — is resolved from the same
+// content entry here, so no page has to duplicate it.
+const BLOG_ROUTE = '/posts/blog/';
+const NOVEL_ROUTE = '/posts/novel/';
+
+/** `Astro.url.pathname` is already decoded, but a stray bare `%` must not throw. */
+function entrySlug(path: string, routePrefix: string): string {
+  const raw = path.slice(routePrefix.length).replace(/\/+$/, '');
+  try {
+    return decodeURIComponent(raw);
+  } catch {
+    return raw;
+  }
+}
+
+let article: ArticleSeo | null = null;
+if (currentPath.startsWith(BLOG_ROUTE)) {
+  const entry = await getEntry('blog', entrySlug(currentPath, BLOG_ROUTE));
+  if (entry && !entry.data.draft) {
+    const data = entry.data;
+    article = {
+      kind: 'blog',
+      title: data.title,
+      description: data.description,
+      publishedTime: data.date.toISOString(),
+      ...(data.updatedDate ? { modifiedTime: data.updatedDate.toISOString() } : {}),
+      author: data.author,
+      section: data.category,
+      tags: data.tags,
+    };
+  }
+} else if (currentPath.startsWith(NOVEL_ROUTE)) {
+  const chapter = await getEntry('novel', entrySlug(currentPath, NOVEL_ROUTE));
+  if (chapter && !chapter.data.draft) {
+    const data = chapter.data;
+    article = {
+      kind: 'novel',
+      title: data.title,
+      // The schema allows an empty description; fall back to the page's own.
+      description: data.description || description,
+      publishedTime: data.date.toISOString(),
+      author: data.author,
+      section: data.volume,
+      tags: data.tags,
+      position: data.chapter,
+    };
+  }
+}
+
+const ogImageAltText = ogImageAlt || article?.title || pageTitle;
+
+const siteSeo = {
+  origin: siteOrigin,
+  name: `${profile.nameZh}的個人空間`,
+  // Alternate names let search engines treat the full name, the short name and
+  // the handles as the same site. Edit them in src/lib/data.ts.
+  alternateNames: [...new Set([profile.nameShort, profile.nameZh, profile.nameEn, profile.name])],
+  inLanguage: 'zh-Hant',
+};
+
+// The WebSite node is emitted on the homepage only (every other page already has
+// a canonical pointing at that origin). Reading pages add their own node.
+const jsonLd: Record<string, unknown>[] = [];
+if (currentPath === '/') {
+  jsonLd.push(
+    buildWebsiteJsonLd(siteSeo, `${profile.nameZh}的個人空間（${profile.nameShort}），分享個人創作、隨筆與最新動態。`),
+  );
+}
+if (article) {
+  jsonLd.push(buildArticleJsonLd(article, { site: siteSeo, pageUrl: canonicalUrl, imageUrl: ogImageUrl }));
+}
+
+// 黑白線條風格圖示（單色，用 currentColor 自動跟隨主題色）。
+const socialIcons: Record<string, string> = {
+  github:
+    '<path fill="currentColor" d="M12 .5C5.73.5.5 5.73.5 12c0 5.09 3.29 9.4 7.86 10.94.57.1.78-.25.78-.55 0-.27-.01-1.17-.02-2.12-3.2.7-3.88-1.35-3.88-1.35-.53-1.34-1.29-1.7-1.29-1.7-1.05-.72.08-.7.08-.7 1.17.08 1.78 1.2 1.78 1.2 1.03 1.77 2.71 1.26 3.37.96.1-.75.4-1.26.73-1.55-2.55-.29-5.23-1.28-5.23-5.69 0-1.26.45-2.29 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.18 1.18a11.1 11.1 0 0 1 2.9-.39c.98 0 1.97.13 2.9.39 2.2-1.49 3.17-1.18 3.17-1.18.64 1.59.24 2.76.12 3.05.74.8 1.18 1.83 1.18 3.09 0 4.42-2.69 5.39-5.25 5.68.41.36.78 1.07.78 2.15 0 1.56-.01 2.81-.01 3.19 0 .3.2.66.79.55A10.52 10.52 0 0 0 23.5 12C23.5 5.73 18.27.5 12 .5Z"/>',
+  youtube:
+    '<path fill="currentColor" d="M23.5 7.19a3.02 3.02 0 0 0-2.12-2.14C19.44 4.5 12 4.5 12 4.5s-7.44 0-9.38.55A3.02 3.02 0 0 0 .5 7.19 31.6 31.6 0 0 0 0 12a31.6 31.6 0 0 0 .5 4.81 3.02 3.02 0 0 0 2.12 2.14c1.94.55 9.38.55 9.38.55s7.44 0 9.38-.55a3.02 3.02 0 0 0 2.12-2.14A31.6 31.6 0 0 0 24 12a31.6 31.6 0 0 0-.5-4.81ZM9.6 15.5v-7l6.2 3.5-6.2 3.5Z"/>',
+  discord:
+    '<path fill="currentColor" d="M20.317 4.3698a19.7913 19.7913 0 0 0-4.8851-1.5152.0741.0741 0 0 0-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 0 0-.0785-.037 19.7363 19.7363 0 0 0-4.8852 1.515.0699.0699 0 0 0-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 0 0 .0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 0 0 .0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 0 0-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 0 1-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 0 1 .0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 0 1 .0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 0 1-.0066.1276 12.2986 12.2986 0 0 1-1.873.8914.0766.0766 0 0 0-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 0 0 .0842.0286c1.961-.6067 3.9495-1.522 6.0023-3.0294a.077.077 0 0 0 .0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 0 0-.0312-.0286ZM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1568 2.4189Zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z"/>',
+  steam:
+    '<path fill="currentColor" d="M11.979 0C5.678 0 .511 4.86.022 11.037l6.432 2.658c.545-.371 1.203-.59 1.912-.59.063 0 .125.004.188.006l2.861-4.142V8.91c0-2.495 2.028-4.524 4.524-4.524 2.494 0 4.524 2.031 4.524 4.527s-2.03 4.525-4.524 4.525h-.105l-4.076 2.911c0 .052.004.105.004.159 0 1.875-1.515 3.396-3.39 3.396-1.635 0-3.016-1.173-3.331-2.727L.436 15.27C1.862 20.307 6.486 24 11.979 24c6.627 0 11.999-5.373 11.999-12S18.605 0 11.979 0ZM7.54 18.21l-1.473-.61c.262.543.714.999 1.314 1.25 1.297.539 2.793-.076 3.332-1.375.263-.63.264-1.319.005-1.949s-.75-1.121-1.377-1.383c-.624-.26-1.29-.249-1.878-.03l1.523.63c.956.4 1.409 1.5 1.009 2.455-.397.957-1.497 1.41-2.454 1.012H7.54Zm11.415-9.303c0-1.662-1.353-3.015-3.015-3.015-1.665 0-3.015 1.353-3.015 3.015 0 1.665 1.35 3.015 3.015 3.015 1.663 0 3.015-1.35 3.015-3.015Zm-5.273-.005c0-1.252 1.013-2.266 2.265-2.266 1.249 0 2.266 1.014 2.266 2.266 0 1.251-1.017 2.265-2.266 2.265-1.253 0-2.265-1.014-2.265-2.265Z"/>',
+  x: '<path fill="currentColor" d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231ZM17.083 19.77h1.833L7.084 4.126H5.117Z"/>',
+  mail: '<path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M3 5h18v14H3z"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="m3 6.5 9 6.5 9-6.5"/>',
+};
+---
+
+<!doctype html>
+<html lang="zh-Hant" data-theme="dark" data-lang="zh">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#0d0f13" />
+    <!-- #19: decide the theme and the document language BEFORE the first paint,
+         so a saved preference never flashes the wrong theme (or a stale
+         <html lang>). The logic lives in /scripts/theme-init.js and is loaded
+         without defer/async on purpose: it must run, parser-blocking, before
+         the first paint. It is excluded from Swup's head script re-run. -->
+    <script is:inline data-swup-ignore-script src="/scripts/theme-init.js"></script>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonicalUrl} />
+    {preconnectOrigins.map((origin: string) => (
+      <link rel="preconnect" href={origin} />
+    ))}
+    <link rel="manifest" href="/site.webmanifest" />
+    <link rel="alternate" type="application/rss+xml" title={`${profile.nameEn} Blog RSS`} href="/rss.xml" />
+    <link rel="alternate" type="application/rss+xml" title={`${profile.nameEn} Novel RSS`} href="/rss-novel.xml" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192.png" />
+
+    <Seo
+      title={pageTitle}
+      description={description}
+      canonicalUrl={canonicalUrl}
+      ogImageUrl={ogImageUrl}
+      siteName={profile.nameZh}
+      ogType={article ? 'article' : ogType}
+      ogImageAlt={ogImageAltText}
+      article={article}
+      jsonLd={jsonLd}
+    />
+
+    <title data-title-key={titleKey} data-title-suffix={titleSuffix ? 'true' : 'false'}>{pageTitle}</title>
+    <script is:inline type="application/json" id="i18n-dict" set:html={I18N_JSON}></script>
+  </head>
+  <body>
+    <!-- #20: keyboard-only skip link. It is the first focusable element, hidden
+         until focused (see .skip-link in shell.css). -->
+    <a class="skip-link" href="#main-content" data-i18n="skip_to_content">
+      {tr('zh', 'skip_to_content')}
+    </a>
+
+    <div class="ambient ambient-a"></div>
+    <div class="ambient ambient-b"></div>
+    <div class="noise"></div>
+
+    <div class="site-bg" aria-hidden="true">
+      <video id="site-bg-video" class="site-bg-media" muted loop playsinline preload="none" poster={bgPoster.src}>
+        <source data-src="/background.webm" type="video/webm" />
+        <source data-src="/background.mp4" type="video/mp4" />
+      </video>
+      <!-- Optimised, content-hashed WebP from src/assets. No JPEG/PNG fallback
+           chain: the build guarantees the file exists, so an <img> error means
+           the asset was genuinely lost and the video poster takes over. -->
+      <Image
+        id="site-bg-img"
+        class="site-bg-media"
+        src={backgroundImage}
+        alt=""
+        widths={BACKGROUND_WIDTHS}
+        sizes="100vw"
+        format="webp"
+        quality={80}
+        loading="eager"
+        decoding="async"
+      />
+      <div class="site-bg-veil"></div>
+    </div>
+
+    <audio id="easter-audio" src="/easter.mp3" preload="none"></audio>
+
+    <header class="topbar">
+      <div class="topbar-left">
+        <a class="brand" href="/">
+          <span class="brand-mark" aria-hidden="true">
+            <img src="/logo.svg" alt="" loading="eager" />
+          </span>
+          <span data-i18n="app_title">{tr('zh', 'app_title')}</span>
+        </a>
+        <nav aria-label="主要導航">
+          <span class="nav-selection-indicator" aria-hidden="true"></span>
+          {navItems.map((item) => (
+            <a
+              class={item.active ? 'active' : undefined}
+              aria-current={item.active ? 'page' : undefined}
+              href={item.href}
+              data-i18n={item.key}
+            >
+              {tr('zh', item.key)}
+            </a>
+          ))}
+        </nav>
+      </div>
+
+      <!-- Whole-site search remains available on every route. The mobile menu
+           has its own counterpart because the topbar field is hidden below 560px.
+           Page-level search fields remain separate contextual filters. -->
+      <SiteSearch id="site-search-topbar" variant="topbar" />
+
+      <div class="top-actions">
+        <span class="online-chip">
+          <span class="pulse"></span>
+          <span data-i18n="site_online">{tr('zh', 'site_online')}</span>
+        </span>
+        <button
+          id="lang"
+          class="icon-btn lang-btn"
+          type="button"
+          aria-label="語言"
+          title="語言"
+          data-i18n-title="language"
+        >
+          <FluentIcon name="language" size={18} />
+        </button>
+        <button
+          id="theme"
+          class="icon-btn"
+          type="button"
+          aria-label="切換主題"
+          title="切換主題"
+          data-i18n-title="switch_theme"
+        >
+          <FluentIcon name="dark-theme" size={18} class="theme-icon" />
+        </button>
+        <button
+          id="nav-toggle"
+          class="icon-btn nav-toggle"
+          type="button"
+          aria-label="選單"
+          title="選單"
+          aria-expanded="false"
+          aria-controls="mobile-menu"
+        >
+          <FluentIcon name="menu" size={18} class="menu-icon" />
+        </button>
+      </div>
+    </header>
+
+    <nav id="mobile-menu" class="mobile-menu" aria-label="主要導航">
+      <!-- Mobile counterpart of the whole-site search. -->
+      <SiteSearch id="site-search-menu" variant="menu" />
+      {navItems.map((item) => (
+        <a
+          class={item.active ? 'active' : undefined}
+          aria-current={item.active ? 'page' : undefined}
+          href={item.href}
+          data-i18n={item.key}
+        >
+          {tr('zh', item.key)}
+        </a>
+      ))}
+      <div class="mobile-menu-actions">
+        <button
+          id="lang-m"
+          class="icon-btn lang-btn"
+          type="button"
+          aria-label="語言"
+          title="語言"
+          data-i18n-title="language"
+        >
+          <FluentIcon name="language" size={18} />
+        </button>
+        <button
+          id="theme-m"
+          class="icon-btn"
+          type="button"
+          aria-label="切換主題"
+          title="切換主題"
+          data-i18n-title="switch_theme"
+        >
+          <FluentIcon name="dark-theme" size={18} class="theme-icon" />
+        </button>
+      </div>
+    </nav>
+
+    <main id="main-content" tabindex="-1">
+      <slot />
+    </main>
+
+    <div class="site-support">
+      {
+        supportLinks.length > 0 && (
+          <div class="support-buttons" role="group" aria-label="Support" data-i18n-aria="support">
+            {supportLinks.map((link) => (
+              <a
+                class:list={['support-button', `support-${link.id}`]}
+                href={link.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={link.name}
+              >
+                <img src={link.image} alt={link.alt ?? link.name} loading="lazy" width={link.width} height={link.height} />
+              </a>
+            ))}
+          </div>
+        )
+      }
+      <p class="site-license">
+        <span data-i18n="license_prefix">{tr('zh', 'license_prefix')}</span>
+        <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" rel="license noopener noreferrer">
+          CC BY-NC-ND 4.0
+        </a>
+        <span data-i18n="license_suffix">{tr('zh', 'license_suffix')}</span>
+      </p>
+    </div>
+
+    <footer>
+      <div class="footer-left">
+        <span>
+          © {new Date().getFullYear()} &nbsp; <span data-i18n="app_title">{tr('zh', 'app_title')}</span>
+        </span>
+        <span class="footer-meta">
+          Powered by &nbsp;{' '}
+          <a href="https://astro.build" target="_blank" rel="noopener noreferrer">
+            Astro
+          </a>{' '}
+          &nbsp; &amp; &nbsp; FluentFolio
+        </span>
+        <a class="footer-rss" href="/rss.xml" target="_blank" rel="noopener noreferrer">
+          RSS
+        </a>
+        <a class="footer-rss" href="/terms" data-i18n="title_terms">
+          Terms of Use
+        </a>
+        <a class="footer-rss" href="/privacy" data-i18n="title_privacy">
+          Privacy Policy
+        </a>
+        <!-- #20: pause/play for the animated background video. Hidden by
+             default: the inline script only reveals it when this browser can
+             actually load the video (wide viewport, no reduced-motion, no
+             data-saver), because there is nothing to toggle otherwise. -->
+        <button
+          id="bg-toggle"
+          class="footer-rss bg-toggle"
+          type="button"
+          aria-pressed="false"
+          data-i18n="background_video"
+          hidden
+        >
+          {tr('zh', 'background_video')}
+        </button>
+      </div>
+      <div class="footer-socials" role="group" aria-label="社交連結">
+        {socials.map((social) => (
+          <a
+            class="social-icon-link"
+            href={social.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={social.name}
+            title={social.name}
+          >
+            <svg
+              viewBox="0 0 24 24"
+              width="18"
+              height="18"
+              aria-hidden="true"
+              set:html={socialIcons[social.icon] ?? ''}
+            />
+          </a>
+        ))}
+      </div>
+    </footer>
+
+    <div id="overlay-root"></div>
+
+    <!-- Site shell: i18n helpers, nav, theme toggle, background video and the
+         persistent /posts + Swup listeners. Served verbatim from public/ so Swup
+         can re-run it without the page going through a bundler. -->
+    <script is:inline data-swup-ignore-script src="/scripts/site-shell.js"></script>
+    <!-- Persistent visit beacon. It must run on every route (not only the
+         homepage) and it owns the single Turnstile challenge a tab is allowed,
+         so it is a shell script: loaded once, opted out of Swup's script re-run,
+         and it binds its own swup:page:view listener (one POST per path per tab). -->
+    <script is:inline data-swup-ignore-script src="/scripts/visit-beacon.js" defer></script>
+    <!-- Lore hover popover. Progressive enhancement only: the words render as
+         plain text and the definition travels on the element itself, so no
+         request is made until the script decides one is needed. -->
+    <script is:inline src="/scripts/lore-tooltip.js" defer></script>
+    <!-- Opted out of Swup's script re-run: the file binds its own swup listeners
+         and a second run would only stack duplicates. -->
+    <script is:inline data-swup-ignore-script src="/scripts/markdown-enhance.js" defer></script>
+    <!-- Copy guard for [data-copy-protect] bodies. A module script, loaded once
+         for the whole site: it delegates from `document`, so Swup navigation
+         keeps working without re-binding anything. -->
+    <script is:inline type="module" src="/scripts/copy-guard.js" data-swup-ignore-script></script>
+  </body>
+</html>
