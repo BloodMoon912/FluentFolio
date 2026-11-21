@@ -4,6 +4,7 @@ import { getEntry } from 'astro:content';
 import { Image, getImage } from 'astro:assets';
 import backgroundImage from '../assets/background.webp';
 import { profile, socials, supportLinks } from '../lib/data';
+import { siteConfig } from '../site.config';
 import { getI18NDict, t as tr } from '../lib/i18n';
 import FluentIcon from '../components/FluentIcon.astro';
 import Seo from '../components/Seo.astro';
@@ -13,7 +14,7 @@ import { serializeForInlineScript } from '../lib/safe-json';
 
 const I18N_JSON = serializeForInlineScript(getI18NDict());
 const {
-  title = 'FluentFolio · Personal Space',
+  title = siteConfig.title,
   titleKey = '',
   // A page may supply a complete title of its own (the homepage's
   // "我的個人空間 | FluentFolio") instead of the usual "<title> · FluentFolio" form.
@@ -28,22 +29,16 @@ const {
 } = Astro.props;
 const currentPath = Astro.url.pathname;
 
-// One list drives both the desktop nav and the mobile menu. `exact` items are
-// active only on their own path; the others also cover everything beneath them
-// (`/posts` stays active on `/posts/blog/…`). The same rule is mirrored in
+// Navigation lives in src/site.config.ts so a derived site can rename or
+// reorder it without editing this layout. `exact` items are active only on
+// their own path; the others also cover everything beneath them (`/posts`
+// stays active on `/posts/blog/…`). The same rule is mirrored in
 // public/scripts/site-shell.js for in-app (swup) navigation.
-const navItems = [
-  { href: '/', key: 'brand_home', exact: true },
-  { href: '/posts', key: 'brand_posts', exact: false },
-  { href: '/dictionary', key: 'brand_dictionary', exact: false },
-  { href: '/world', key: 'brand_world', exact: false },
-  { href: '/status', key: 'brand_status', exact: true },
-  { href: '/about', key: 'brand_about', exact: true },
-].map((item) => ({
+const navItems = siteConfig.nav.map((item) => ({
   ...item,
   active: item.exact ? currentPath === item.href : currentPath === item.href || currentPath.startsWith(`${item.href}/`),
 }));
-const siteSuffix = profile.nameShort;
+const siteSuffix = siteConfig.titleSuffix;
 const pageTitle = titleKey ? (titleSuffix ? `${tr('zh', titleKey)} · ${siteSuffix}` : tr('zh', titleKey)) : title;
 const canonicalUrl = new URL(currentPath, Astro.site ?? Astro.url.origin).toString();
 const ogImageUrl = new URL(ogImage, Astro.site ?? Astro.url.origin).toString();
@@ -117,8 +112,9 @@ const siteSeo = {
   origin: siteOrigin,
   name: `${profile.nameZh}的個人空間`,
   // Alternate names let search engines treat the full name, the short name and
-  // the handles as the same site. Edit them in src/lib/data.ts.
-  alternateNames: [...new Set([profile.nameShort, profile.nameZh, profile.nameEn, profile.name])],
+  // the handles as the same site. Derived sites can extend the list in
+  // src/site.config.ts without touching this layout.
+  alternateNames: siteConfig.alternateNames,
   inLanguage: 'zh-Hant',
 };
 

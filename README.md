@@ -137,18 +137,20 @@
 
 ### 先改這幾個地方
 
-| 想改什麼                         | 在哪裡改                                                                     |
-| -------------------------------- | ---------------------------------------------------------------------------- |
-| 名字、帳號、標語、社交連結       | [`src/lib/data.ts`](src/lib/data.ts)                                         |
-| About 頁的設備與遊戲             | [`src/lib/data.ts`](src/lib/data.ts) 的 `aboutSetup`、`aboutGames`           |
-| 捐助按鈕（Ko-fi、Liberapay 等）  | [`src/lib/data.ts`](src/lib/data.ts) 的 `supportLinks`，預設為空             |
-| 所有介面文字、私隱政策、使用條款 | [`src/i18n/ui.ts`](src/i18n/ui.ts)（`zh` 與 `en` 兩份）                      |
-| 網域、資源 ID、Access 設定       | [`wrangler.jsonc`](wrangler.jsonc)                                           |
-| 配色、圓角、陰影                 | [`src/styles/tokens.css`](src/styles/tokens.css)                             |
-| Logo、favicon、PWA 圖示          | `public/logo.svg`、`public/favicon.svg`、`public/icons/`                     |
-| 背景圖與背景影片                 | `src/assets/background.webp`、`public/background.mp4`、`.webm`               |
-| 彩蛋音效                         | `public/easter.mp3`                                                          |
-| 導覽列項目                       | [`src/layouts/BaseLayout.astro`](src/layouts/BaseLayout.astro) 的 `navItems` |
+| 想改什麼                         | 在哪裡改                                                           |
+| -------------------------------- | ------------------------------------------------------------------ |
+| 站名、標題後綴、導覽列項目       | [`src/site.config.ts`](src/site.config.ts)                         |
+| 名字、帳號、標語、社交連結       | [`src/lib/data.ts`](src/lib/data.ts)                               |
+| About 頁的設備與遊戲             | [`src/lib/data.ts`](src/lib/data.ts) 的 `aboutSetup`、`aboutGames` |
+| 捐助按鈕（Ko-fi、Liberapay 等）  | [`src/lib/data.ts`](src/lib/data.ts) 的 `supportLinks`，預設為空   |
+| 所有介面文字、私隱政策、使用條款 | [`src/i18n/ui.ts`](src/i18n/ui.ts)（`zh` 與 `en` 兩份）            |
+| 網域、資源 ID、Access 設定       | [`wrangler.jsonc`](wrangler.jsonc)                                 |
+| 配色、圓角、陰影                 | [`src/styles/tokens.css`](src/styles/tokens.css)                   |
+| Logo、favicon、PWA 圖示          | `public/logo.svg`、`public/favicon.svg`、`public/icons/`           |
+| 背景圖與背景影片                 | `src/assets/background.webp`、`public/background.mp4`、`.webm`     |
+| 彩蛋音效                         | `public/easter.mp3`                                                |
+
+想日後無痛升級主題，請看 [`docs/UPGRADING.md`](docs/UPGRADING.md)：站點設定、內容與主題三層分開，升級時只有站點層會衝突。
 
 ### 目錄結構
 
