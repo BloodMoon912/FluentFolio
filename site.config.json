@@ -8,11 +8,7 @@
   "webauthnSalt": "fluentfolio",
   "cmsSlug": "fluentfolio",
   "contactEmail": "contact@example.com",
-  "alternateNames": [
-    "FluentFolio",
-    "你的名字",
-    "Your Name"
-  ],
+  "alternateNames": ["FluentFolio", "你的名字", "Your Name"],
   "licenseNotice": {
     "zh": "© 你的名字 版權所有，轉載請註明出處",
     "en": "© Your Name. All rights reserved. Please credit the source when quoting."
