@@ -1,64 +1,64 @@
 # Fluent UI Design & Motion Guidelines for Astro
 
-**版本：1.1（AI Agent Edition）**  
-**定位：Astro Web 的 Windows 11 / WinUI 3 / Fluent-inspired Design System**  
-**用途：設計、開發、Code Review、AI Agent Implementation Reference**
+**Version: 1.1 (AI Agent Edition)**  
+**Scope: a Windows 11 / WinUI 3 / Fluent-inspired design system for the Astro web**  
+**Purpose: design, development, code review, and AI agent implementation reference**
 
-> 本文件不是 Microsoft WinUI 3 的 Web 移植版，也不是要求 Astro 使用 XAML、WinAppSDK 或 WinUI Runtime。
+> This document is not a web port of Microsoft WinUI 3, and it does not ask Astro to use XAML, WinAppSDK, or the WinUI runtime.
 >
-> 它是一套把 Fluent / Windows motion、material、depth、geometry、interaction principles 轉化為 Web-native 規則的設計規範。
+> It is a design specification that translates Fluent / Windows motion, material, depth, geometry, and interaction principles into web-native rules.
 >
-> 參考 Fluent 2、Windows Design Guidelines 與 WinUI motion guidance；具體 Web token 與 CSS 實作為本網站的適配值，而不是 Microsoft 官方 token 的一對一複製。
+> It references Fluent 2, the Windows Design Guidelines, and the WinUI motion guidance; the concrete web tokens and CSS implementations are adaptation values for this site, not a one-to-one copy of Microsoft's official tokens.
 
-**1.1 版變更**：修正内文殘留的破損引用標記；新增〈如何使用本文件〉、Table of Contents、§81 Token 快查表、§82 送出前檢查清單、§83 Agent 常見失誤模式、§84 機器可讀 Rule Manifest，讓 AI Agent 能更快定位規則、以一致語意解讀「必須／應／可以／禁止」，並在修改前後有可勾選的驗證步驟。原有 §0–§80 內容與規則本身未變動。
+**Changes in version 1.1**: fixed broken reference markers left in the body; added "How to use this document", a Table of Contents, §81 Token quick reference, §82 Pre-change checklist, §83 Common agent failure patterns, and §84 Machine-readable rule manifest, so that an AI agent can find rules faster, read "must / should / may / must not" with consistent semantics, and have a checkable verification step before and after a change. The content and rules of the original §0–§80 are unchanged.
 
 ---
 
-## 如何使用本文件（AI Agent 使用說明）
+## How to use this document (notes for AI agents)
 
-本文件共 81 個章節（§0–§80），加上本次新增的 §81–§84，總計 85 個章節，篇幅較長。AI Agent **不應該每次任務都把全文塞進 context**，而應該用下面的策略讀取：
+This document has 81 sections (§0–§80), plus the newly added §81–§84, for 85 sections in total, and it is long. An AI agent **should not stuff the whole text into context on every task**; it should read using the strategy below.
 
-### 規範語意（Normative Keywords）
+### Normative keywords
 
-本文件用中文書寫，但語氣強度是有意義的，請依下表解讀，等同 RFC 2119 的 MUST / SHOULD / MAY：
+This document is written in English, but the strength of each statement is meaningful; read it according to the table below, which is equivalent to RFC 2119 MUST / SHOULD / MAY:
 
-| 文中用語 | 等同語意 | Agent 應對方式 |
+| Term in this document | Equivalent meaning | How an agent should handle it |
 |---|---|---|
-| 必須、不得、禁止 | **MUST / MUST NOT** | 沒有例外，違反視為 bug，不可因為「看起來更漂亮」而略過 |
-| 應、推薦、優先 | **SHOULD** | 預設遵守；若有明確、可陳述的理由要偏離，需在 PR / commit message 中說明原因 |
-| 可以、可 | **MAY** | 視情境選用，不遵守不算錯誤 |
-| 不要、避免 | **SHOULD NOT**（若同段落出現「禁止」則視為 MUST NOT） | 預設不做；只有在有明確設計理由時才考慮 |
-| 除非 / 除非有明確理由 | 條件例外 | 例外必須是「明確、可陳述」的理由，不能是「我覺得比較好看」 |
+| must, must not, forbidden | **MUST / MUST NOT** | No exceptions; a violation is a bug and may not be skipped because it "looks prettier" |
+| should, recommended, preferred | **SHOULD** | Follow by default; if there is a clear, statable reason to deviate, state that reason in the PR / commit message |
+| may, can | **MAY** | Optional depending on context; not following it is not an error |
+| don't, avoid | **SHOULD NOT** (treated as MUST NOT if "forbidden" appears in the same paragraph) | Don't do it by default; consider it only when there is a clear design reason |
+| unless / unless there is a clear reason | Conditional exception | The exception must be a "clear, statable" reason, not "I think it looks better" |
 
-### Agent 建議的讀取順序
+### Recommended reading order for agents
 
-1. **一定先讀**：§0（Design North Star）、§61（Motion Decision Tree）、§70–§72（AI Agent Implementation Rules / 修改優先級 / Dependency Rule）。這些定義了「動不動、怎麼動、要不要裝套件」的最高層判斷。
-2. **依任務跳讀**：用下方 Table of Contents 直接定位到相關 component（例如改 Dropdown 就讀 §22–§23，改 Dialog 就讀 §24），不需要通篇閱讀。
-3. **查數值一律用 §81**：不要在 §3/§4/§11/§12/§53 等分散段落裡重新推導數值，§81 是唯一 source of truth，若正文其他段落與 §81 數值不一致，以 §81 為準。
-4. **送出修改前**：逐項核對 §82 Pre-Change Checklist。
-5. **懷疑自己是不是踩到常見錯誤**：對照 §83。
-6. **需要程式化解析 token / 規則**：讀 §84 的 YAML manifest，不需要重新解析 Markdown 散文。
+1. **Always read first**: §0 (Design North Star), §61 (Motion Decision Tree), §70–§72 (AI Agent Implementation Rules / modification priority / Dependency Rule). These define the highest-level judgement of "should it move, how should it move, should a dependency be installed".
+2. **Jump by task**: use the Table of Contents below to go straight to the relevant component (for example, read §22–§23 when changing a Dropdown, or §24 when changing a Dialog); there is no need to read the whole document.
+3. **Always look values up in §81**: do not re-derive values from the scattered sections such as §3 / §4 / §11 / §12 / §53. §81 is the single source of truth, and if a value elsewhere in the body disagrees with §81, §81 wins.
+4. **Before submitting a change**: check every item in the §82 Pre-Change Checklist.
+5. **When unsure whether you have hit a common mistake**: compare against §83.
+6. **When tokens / rules must be parsed programmatically**: read the YAML manifest in §84; there is no need to re-parse the Markdown prose.
 
-### 衝突解決順序
+### Conflict resolution order
 
-當具體 component 規則（例如 §22 Dropdown 的動畫）與通用原則（例如 §9 Motion Principles）看似衝突時：
+When a specific component rule (for example the animation in §22 Dropdown) appears to conflict with a general principle (for example §9 Motion Principles):
 
 ```text
-具體 component 規則
-   優先於
-通用原則
-   但
-Accessibility（§41 §42 §43）
-Golden Rules（§78）
-   永遠優先於兩者
+Specific component rule
+   takes precedence over
+General principle
+   but
+Accessibility (§41 §42 §43)
+Golden Rules (§78)
+   always take precedence over both
 ```
 
-也就是說，越具體的規則可以覆蓋越通用的規則，但無障礙與 §78 的 12 條 Golden Rules 是不可被覆蓋的底線。
+That is: the more specific rule may override the more general one, but accessibility and the 12 Golden Rules of §78 are a floor that cannot be overridden.
 
 ### Table of Contents
 
 <details>
-<summary>展開完整章節列表（§0–§80）</summary>
+<summary>Expand the full section list (§0–§80)</summary>
 
 - [0. Design North Star](#0-design-north-star)
 - [1. Fluent Design Principles](#1-fluent-design-principles)
@@ -110,7 +110,7 @@ Golden Rules（§78）
 - [47. CSS Token Architecture](#47-css-token-architecture)
 - [48. Component State Model](#48-component-state-model)
 - [49. State Transition Rule](#49-state-transition-rule)
-- [50. Fluent Select 完整規範](#50-fluent-select-完整規範)
+- [50. Fluent Select Complete Specification](#50-fluent-select-complete-specification)
 - [51. Fancy Select Overlay Rule](#51-fancy-select-overlay-rule)
 - [52. Surface Consistency](#52-surface-consistency)
 - [53. Shadow System](#53-shadow-system)
@@ -131,7 +131,7 @@ Golden Rules（§78）
 - [68. View Transition API](#68-view-transition-api)
 - [69. Progressive Enhancement](#69-progressive-enhancement)
 - [70. AI Agent Implementation Rules](#70-ai-agent-implementation-rules)
-- [71. AI Agent 修改優先級](#71-ai-agent-修改優先級)
+- [71. AI Agent Modification Priority](#71-ai-agent-modification-priority)
 - [72. Dependency Rule](#72-dependency-rule)
 - [73. Testing](#73-testing)
 - [74. Browser Testing](#74-browser-testing)
@@ -148,15 +148,15 @@ Golden Rules（§78）
 
 # 0. Design North Star
 
-網站的目標不是：
+The goal of the site is not:
 
-> 「加很多 Windows 11 動畫。」
+> "to add lots of Windows 11 animations."
 
-而是：
+It is:
 
-> **讓使用者感覺 UI 有層次、有重量、有連續性，而且每個動畫都有目的。**
+> **to make users feel that the UI has hierarchy, weight, and continuity, and that every animation has a purpose.**
 
-Fluent Motion 的核心可以概括為：
+The core of Fluent Motion can be summarised as:
 
 ```text
 Functional
@@ -165,9 +165,9 @@ Consistent
 Appealing
 ```
 
-Fluent 官方將 motion 定義為幫助使用者理解 UI 狀態、方向與關係的工具，而不是單純裝飾。
+Fluent officially defines motion as a tool that helps users understand UI state, direction, and relationships, rather than as pure decoration.
 
-因此：
+Therefore:
 
 ```text
 Motion ≠ Decoration
@@ -180,25 +180,25 @@ Motion = Information + Feedback + Continuity
 
 ## 1.1 Natural on every platform
 
-Web 不是 Windows Desktop。
+The web is not the Windows desktop.
 
-因此：
+Therefore:
 
-- 使用 Web 原生 interaction pattern。
-- 保留 Astro 的 rendering architecture。
-- 不模擬不存在於瀏覽器中的 WinUI API。
-- 在 Windows 上可以具有 Windows 11 的視覺語言。
-- 在 macOS / Linux / mobile 上仍然應該是一個正常的 Web UI。
+- Use web-native interaction patterns.
+- Keep Astro's rendering architecture.
+- Do not imitate WinUI APIs that do not exist in the browser.
+- On Windows it may carry the Windows 11 visual language.
+- On macOS / Linux / mobile it should still be a normal web UI.
 
-Fluent 官方也強調 experience 應該適應使用者所在的平台。
+Fluent's own guidance also stresses that an experience should adapt to the platform the user is on.
 
 ---
 
 ## 1.2 Built for focus
 
-動畫不應該搶走內容的注意力。
+Animation should not steal attention away from the content.
 
-優先順序：
+Priority order:
 
 ```text
 Content
@@ -210,15 +210,15 @@ Context
 Decoration
 ```
 
-如果一個動畫很漂亮，但讓使用者不知道自己剛才點了什麼：
+If an animation is beautiful but leaves the user unsure what they just clicked:
 
-**移除動畫。**
+**remove the animation.**
 
 ---
 
 ## 1.3 One for all
 
-所有互動都必須考慮：
+Every interaction must account for:
 
 - keyboard
 - screen reader
@@ -228,13 +228,13 @@ Decoration
 - small screens
 - low-power devices
 
-Fluent motion guidance 明確要求提供 no-motion experience，並避免突然、閃爍或可能造成不適的動作。
+The Fluent motion guidance explicitly requires a no-motion experience, and warns against abrupt, flashing, or potentially uncomfortable movement.
 
 ---
 
 ## 1.4 Unmistakably Fluent
 
-網站可以具有：
+The site may have:
 
 - rounded geometry
 - translucent surfaces
@@ -243,7 +243,7 @@ Fluent motion guidance 明確要求提供 no-motion experience，並避免突然
 - clear hierarchy
 - responsive feedback
 
-但不要變成：
+But it must not become:
 
 ```text
 Everything floats
@@ -253,13 +253,13 @@ Everything blurs
 Everything animates
 ```
 
-這不是 Fluent。
+That is not Fluent.
 
 ---
 
 # 2. Visual Language
 
-Fluent UI 的視覺語言由幾個互相配合的維度構成：
+The Fluent UI visual language is made up of several dimensions that work together:
 
 ```text
 Geometry
@@ -272,7 +272,7 @@ Iconography
 Layout
 ```
 
-Windows design guidelines 也將 elevation、geometry、layout、materials、motion、navigation、typography 等列為核心設計領域。
+The Windows design guidelines likewise list elevation, geometry, layout, materials, motion, navigation, and typography among the core design areas.
 
 ---
 
@@ -280,7 +280,7 @@ Windows design guidelines 也將 elevation、geometry、layout、materials、mot
 
 ## 3.1 Corner Radius
 
-推薦建立 semantic radius，而不是每個 component 自己設定。
+Prefer establishing semantic radii rather than letting every component set its own.
 
 ```css
 :root {
@@ -293,7 +293,7 @@ Windows design guidelines 也將 elevation、geometry、layout、materials、mot
 }
 ```
 
-推薦：
+Recommended:
 
 | Component | Radius |
 |---|---:|
@@ -306,11 +306,11 @@ Windows design guidelines 也將 elevation、geometry、layout、materials、mot
 | Large surface | 16–20px |
 | Avatar | 50% |
 
-### 原則
+### Principle
 
-相鄰元件應使用相關 radius。
+Adjacent elements should use related radii.
 
-不要：
+Don't:
 
 ```text
 Button = 4px
@@ -319,15 +319,15 @@ Card = 31px
 Dialog = 3px
 ```
 
-除非有明確設計理由。
+unless there is a clear design reason.
 
 ---
 
 # 4. Spacing
 
-Fluent layout 使用 spacing 建立群組關係與 hierarchy；距離越近，使用者越容易理解它們屬於同一組。
+Fluent layout uses spacing to establish grouping and hierarchy; the closer things are, the more easily users read them as one group.
 
-建立基礎 spacing：
+Establish base spacing:
 
 ```css
 :root {
@@ -344,7 +344,7 @@ Fluent layout 使用 spacing 建立群組關係與 hierarchy；距離越近，�
 }
 ```
 
-不要為每個 component 發明：
+Don't invent, for each component:
 
 ```css
 margin-top: 13px;
@@ -352,19 +352,19 @@ margin-left: 19px;
 padding: 27px;
 ```
 
-如果不是特殊 optical adjustment，優先使用 token。
+Unless it is a deliberate optical adjustment, prefer the tokens.
 
 ---
 
 # 5. Material
 
-Fluent material 的目的不是「讓背景透明」。
+The purpose of a Fluent material is not "making the background transparent".
 
-Material 應該回答：
+Material should answer:
 
-> 這個 surface 在 UI hierarchy 中處於什麼位置？
+> Where does this surface sit in the UI hierarchy?
 
-推薦三種 Web surface：
+Three web surfaces are recommended:
 
 ```text
 Solid
@@ -376,7 +376,7 @@ Elevated / Overlay
 
 ## 5.1 Solid Surface
 
-普通 content：
+Ordinary content:
 
 ```css
 .fluent-surface {
@@ -388,7 +388,7 @@ Elevated / Overlay
 
 ## 5.2 Translucent Surface
 
-適合：
+Suitable for:
 
 - navigation
 - card
@@ -410,7 +410,7 @@ Elevated / Overlay
 }
 ```
 
-必須 fallback：
+A fallback is mandatory:
 
 ```css
 @supports not (backdrop-filter: blur(1px)) {
@@ -424,7 +424,7 @@ Elevated / Overlay
 
 ## 5.3 Overlay Surface
 
-適合：
+Suitable for:
 
 - dropdown
 - flyout
@@ -432,9 +432,9 @@ Elevated / Overlay
 - tooltip
 - dialog
 
-Overlay 不應與普通 card 使用完全相同的 material。
+An overlay should not use exactly the same material as an ordinary card.
 
-通常：
+Usually:
 
 ```text
 Overlay
@@ -448,17 +448,17 @@ Overlay
 
 # 6. Transparency Rules
 
-透明不是越多越 Fluent。
+Transparency is not more Fluent the more of it there is.
 
-禁止：
+Forbidden:
 
 ```text
 opacity: 0.3
 ```
 
-讓文字直接疊在複雜背景上。
+letting text sit directly on top of a complex background.
 
-優先：
+Prefer:
 
 ```text
 Surface
@@ -470,7 +470,7 @@ Blur
 Border
 ```
 
-透明 surface 必須保證：
+A transparent surface must guarantee:
 
 - text contrast
 - focus visibility
@@ -481,9 +481,9 @@ Border
 
 # 7. Elevation & Depth
 
-Fluent 使用 elevation 表達 hierarchy。
+Fluent uses elevation to express hierarchy.
 
-建立 semantic layers：
+Establish semantic layers:
 
 ```css
 :root {
@@ -497,7 +497,7 @@ Fluent 使用 elevation 表達 hierarchy。
 }
 ```
 
-這些數值是本網站的 implementation convention。
+These values are this site's implementation convention.
 
 ---
 
@@ -517,15 +517,15 @@ Dialog
 Toast / System Feedback
 ```
 
-影子應該隨 elevation 增強，而不是所有東西都使用同一個 shadow。
+Shadows should strengthen with elevation, rather than everything using the same shadow.
 
 ---
 
 # 8. Stacking Context
 
-`z-index` 不是唯一決定因素。
+`z-index` is not the only deciding factor.
 
-以下 property 可能建立新的 stacking context：
+The following properties can create a new stacking context:
 
 ```text
 transform
@@ -536,19 +536,19 @@ isolation
 contain
 ```
 
-因此：
+Therefore:
 
 ```css
 z-index: 999999;
 ```
 
-不代表一定能讓 dropdown 出現在最上面。
+does not guarantee that a dropdown will appear on top.
 
 ---
 
 ## 8.1 Overlay Architecture
 
-推薦：
+Recommended:
 
 ```html
 <body>
@@ -560,7 +560,7 @@ z-index: 999999;
 </body>
 ```
 
-需要跨越 card / section / clipping boundary 的 UI：
+UI that needs to cross card / section / clipping boundaries:
 
 ```text
 Dropdown
@@ -569,13 +569,13 @@ Dialog
 Toast
 ```
 
-優先放進 top-level overlay layer。
+should preferably go into a top-level overlay layer.
 
 ---
 
 # 9. Motion Principles
 
-Fluent motion 官方核心：
+The official core of Fluent motion:
 
 ```text
 Functional
@@ -584,13 +584,13 @@ Consistent
 Appealing
 ```
 
-並強調 duration、easing、transition choreography、hierarchy。
+It also stresses duration, easing, transition choreography, and hierarchy.
 
 ---
 
 # 10. Motion Vocabulary
 
-本系統使用：
+This system uses:
 
 ```text
 Enter
@@ -606,15 +606,15 @@ Connect
 Navigate
 ```
 
-每一種 motion 都有自己的目的。
+Each kind of motion has its own purpose.
 
 ---
 
 # 11. Duration
 
-WinUI 官方 guidance 使用 83ms、167ms、250ms、333ms 等平台動畫 duration。
+The official WinUI guidance uses platform animation durations of 83ms, 167ms, 250ms, and 333ms.
 
-Web adaptation：
+Web adaptation:
 
 ```css
 :root {
@@ -640,13 +640,13 @@ Web adaptation：
 | Page transition | 167–250ms |
 | Connected animation | 250–333ms |
 
-不是所有動畫都必須使用完整 duration。
+Not every animation has to use the full duration.
 
 ---
 
 # 12. Easing
 
-推薦：
+Recommended:
 
 ```css
 :root {
@@ -663,7 +663,7 @@ Web adaptation：
 }
 ```
 
-Windows guidance 對 Direct Entrance、Existing Elements、Direct Exit 等 motion purpose 使用不同 easing；exit 通常與 fade-out 結合。
+The Windows guidance uses different easing for motion purposes such as Direct Entrance, Existing Elements, and Direct Exit; exit is usually combined with a fade-out.
 
 ---
 
@@ -671,25 +671,25 @@ Windows guidance 對 Direct Entrance、Existing Elements、Direct Exit 等 motio
 
 ## Enter
 
-使用：
+Use:
 
 ```css
 var(--fluent-ease-decelerate)
 ```
 
-因為元素需要「進入並穩定」。
+because the element needs to "enter and settle".
 
 ---
 
 ## Existing Element
 
-使用：
+Use:
 
 ```css
 var(--fluent-ease-standard)
 ```
 
-適合：
+Suitable for:
 
 - resize
 - reposition
@@ -699,13 +699,13 @@ var(--fluent-ease-standard)
 
 ## Exit
 
-使用：
+Use:
 
 ```css
 var(--fluent-ease-accelerate)
 ```
 
-並通常搭配：
+and usually pair it with:
 
 ```text
 opacity → 0
@@ -715,19 +715,19 @@ opacity → 0
 
 ## Linear
 
-只用於：
+Only for:
 
 - rotation
 - progress
 - continuous mechanical motion
 
-不要將 linear 作為普通 UI enter/exit。
+Do not use linear for ordinary UI enter/exit.
 
 ---
 
 # 14. Enter Motion
 
-標準 Fluent Web enter：
+The standard Fluent web enter:
 
 ```text
 Opacity
@@ -737,7 +737,7 @@ Small translation
 Optional small scale
 ```
 
-推薦：
+Recommended:
 
 ```css
 .from-enter {
@@ -755,7 +755,7 @@ Optional small scale
 }
 ```
 
-不要：
+Don't:
 
 ```text
 translateY(100px)
@@ -763,30 +763,30 @@ scale(0.7)
 rotate(10deg)
 ```
 
-除非這是特殊 hero animation。
+unless it is a special hero animation.
 
 ---
 
 # 15. Exit Motion
 
-Exit 應比 Enter 快。
+Exit should be faster than Enter.
 
-例如：
+For example:
 
 ```text
 Enter: 250ms
 Exit: 167ms
 ```
 
-這使 UI 感覺 responsive。
+This is what makes the UI feel responsive.
 
 ---
 
 # 16. Hover Motion
 
-Hover 是 feedback，不是 entrance。
+Hover is feedback, not entrance.
 
-推薦：
+Recommended:
 
 ```css
 .interactive {
@@ -805,7 +805,7 @@ Hover 是 feedback，不是 entrance。
 
 # 17. Press Motion
 
-Press 應該是短暫的。
+Press should be brief.
 
 ```css
 .interactive:active {
@@ -813,19 +813,19 @@ Press 應該是短暫的。
 }
 ```
 
-不要使用：
+Do not use:
 
 ```css
 scale(0.90);
 ```
 
-除非 component 本身非常大型。
+unless the component itself is very large.
 
 ---
 
 # 18. Elevation Motion
 
-Hover 可以改變 elevation：
+Hover may change elevation:
 
 ```text
 Rest
@@ -835,7 +835,7 @@ Hover
 Elevated
 ```
 
-例如：
+For example:
 
 ```css
 .card {
@@ -848,7 +848,7 @@ Elevated
 }
 ```
 
-但不要同時：
+But do not animate all of these at once:
 
 ```text
 scale
@@ -859,13 +859,11 @@ glow
 shadow
 ```
 
-全部動畫。
-
 ---
 
 # 19. Fluent Card
 
-Card 的標準狀態：
+The card's standard states:
 
 ```text
 Rest
@@ -875,7 +873,7 @@ Focus
 Disabled
 ```
 
-推薦：
+Recommended:
 
 ```css
 .card {
@@ -900,7 +898,7 @@ Disabled
 
 # 20. Button
 
-Button：
+Button:
 
 ```text
 Rest
@@ -910,7 +908,7 @@ Focus
 Disabled
 ```
 
-推薦：
+Recommended:
 
 ```css
 .button {
@@ -932,7 +930,7 @@ Disabled
 
 # 21. Focus
 
-Focus 不應被 hover animation 取代。
+Focus should not be replaced by hover animation.
 
 ```css
 :focus-visible {
@@ -941,18 +939,18 @@ Focus 不應被 hover animation 取代。
 }
 ```
 
-Focus ring 應：
+The focus ring should be:
 
-- 明顯
-- 穩定
-- 不閃爍
-- 不依賴動畫
+- obvious
+- stable
+- not blinking
+- not dependent on animation
 
 ---
 
 # 22. Dropdown / ComboBox
 
-Fluent-style dropdown：
+Fluent-style dropdown:
 
 ```text
 Closed
@@ -998,7 +996,7 @@ Open
 
 # 23. Dropdown Choreography
 
-Parent 先出現：
+The parent appears first:
 
 ```text
 Surface
@@ -1006,7 +1004,7 @@ Surface
 Items
 ```
 
-如果需要 stagger：
+If stagger is needed:
 
 ```text
 Item 1: 0ms
@@ -1015,7 +1013,7 @@ Item 3: 40ms
 Item 4: 60ms
 ```
 
-不要：
+Don't:
 
 ```text
 0
@@ -1025,15 +1023,15 @@ Item 4: 60ms
 400
 ```
 
-否則 menu 會變慢。
+Otherwise the menu becomes slow.
 
-Fluent guidance 建議使用短 offset 的 stagger，並避免讓整體動畫因 stagger 過度延長。
+The Fluent guidance suggests stagger with a short offset, and warns against letting the overall animation be stretched too long by the stagger.
 
 ---
 
 # 24. Dialog
 
-Dialog hierarchy：
+Dialog hierarchy:
 
 ```text
 Page
@@ -1045,7 +1043,7 @@ Dialog
 Dialog Content
 ```
 
-Backdrop：
+Backdrop:
 
 ```css
 .dialog-backdrop {
@@ -1055,7 +1053,7 @@ Backdrop：
 }
 ```
 
-Panel：
+Panel:
 
 ```css
 .dialog-panel {
@@ -1075,7 +1073,7 @@ Panel：
 
 # 25. Tooltip
 
-Tooltip 不應使用大型 animation。
+A tooltip should not use a large animation.
 
 ```css
 .tooltip {
@@ -1097,7 +1095,7 @@ Tooltip 不應使用大型 animation。
 
 # 26. Accordion
 
-Expand：
+Expand:
 
 ```text
 Collapsed
@@ -1107,7 +1105,7 @@ Content becomes visible
 Height / clip changes
 ```
 
-如果可能，優先使用 grid：
+Prefer grid where possible:
 
 ```css
 .accordion-content {
@@ -1127,17 +1125,17 @@ Height / clip changes
 }
 ```
 
-避免大量 JS 計算高度。
+Avoid heavy JavaScript height calculation.
 
 ---
 
 # 27. Navigation
 
-Top-level navigation 是高層級 transition。
+Top-level navigation is a high-level transition.
 
-Fluent motion guidance 建議 top-level navigation 使用快速 fade，而不是讓整個頁面大幅滑動。
+The Fluent motion guidance suggests a fast fade for top-level navigation, rather than letting the whole page slide far.
 
-推薦：
+Recommended:
 
 ```text
 Page A
@@ -1147,20 +1145,20 @@ Page B
 fade in
 ```
 
-避免：
+Avoid:
 
 ```text
 Page A → 100vw slide
 Page B ← 100vw slide
 ```
 
-除非使用者明確理解這是 spatial navigation。
+Unless the user clearly understands that this is spatial navigation.
 
 ---
 
 # 28. Connected Motion
 
-當兩個頁面存在明確相同物件：
+When two pages clearly share the same object:
 
 ```text
 Blog Card
@@ -1168,18 +1166,18 @@ Blog Card
 Blog Article
 ```
 
-可以讓：
+you may let:
 
 ```text
 Thumbnail
 Title
 ```
 
-產生 connected transition。
+produce a connected transition.
 
-Windows 的 connected animation 用來強化兩個 view 之間的關係，讓使用者理解「這個頁面就是剛才選中的那個東西」。
+Windows connected animation is used to strengthen the relationship between two views, so the user understands "this page is the thing I just selected".
 
-Web implementation 優先：
+Web implementation preference:
 
 ```text
 View Transition API
@@ -1193,11 +1191,11 @@ simple fade
 
 # 29. Astro View Transitions
 
-如果網站使用 Astro ClientRouter / View Transitions：
+If the site uses Astro ClientRouter / View Transitions:
 
-優先使用 Astro / browser native transition。
+prefer the Astro / browser native transition.
 
-不要自行：
+Do not roll your own:
 
 ```js
 setTimeout(() => {
@@ -1205,21 +1203,21 @@ setTimeout(() => {
 }, 500);
 ```
 
-因為 navigation 不應被 animation 阻塞。
+because navigation should not be blocked by animation.
 
 ---
 
 # 30. Scroll Reveal
 
-Scroll reveal 的目的：
+The purpose of scroll reveal:
 
-> 幫助使用者理解內容 hierarchy。
+> to help users understand the content hierarchy.
 
-不是：
+Not:
 
-> 讓每個元素從天上飛進來。
+> to make every element fly in from the sky.
 
-推薦：
+Recommended:
 
 ```css
 .reveal {
@@ -1241,29 +1239,29 @@ Scroll reveal 的目的：
 
 # 31. Scroll Reveal Rules
 
-推薦：
+Recommended:
 
 ```text
 Distance: 8–16px
 Duration: 167–333ms
 ```
 
-不要：
+Don't:
 
 ```text
 Distance: 200px
 Duration: 1s
 ```
 
-每個 section 不應有完全獨立的動畫節奏。
+Each section should not have a completely independent animation rhythm.
 
 ---
 
 # 32. Choreography
 
-動畫不是孤立事件。
+Animation is not an isolated event.
 
-例如：
+For example:
 
 ```text
 Page
@@ -1277,7 +1275,7 @@ Description
 Primary Action
 ```
 
-推薦：
+Recommended:
 
 ```text
 Hero       0ms
@@ -1286,13 +1284,13 @@ Body      60ms
 Action    90ms
 ```
 
-但是整體完成時間仍應保持短。
+But the overall completion time should still stay short.
 
 ---
 
 # 33. Hierarchy
 
-重要元素：
+Important elements:
 
 ```text
 Primary action
@@ -1300,9 +1298,9 @@ Main title
 Selected item
 ```
 
-可以獲得較明顯 motion。
+may receive more pronounced motion.
 
-次要元素：
+Secondary elements:
 
 ```text
 Metadata
@@ -1310,15 +1308,15 @@ Secondary text
 Decorative elements
 ```
 
-使用較少 motion。
+use less motion.
 
-Fluent 官方把 animation hierarchy 視為引導注意力與降低導航混亂的重要部分。
+Fluent officially treats animation hierarchy as an important part of directing attention and reducing navigation confusion.
 
 ---
 
 # 34. Animated Icons
 
-Icon motion 應該是：
+Icon motion should be:
 
 ```text
 Small
@@ -1326,14 +1324,14 @@ Fast
 Purposeful
 ```
 
-例如：
+For example:
 
 ```text
 Chevron:
 0° → 180°
 ```
 
-推薦：
+Recommended:
 
 ```css
 .icon-chevron {
@@ -1346,7 +1344,7 @@ Chevron:
 }
 ```
 
-不要讓 icon：
+Do not let an icon:
 
 ```text
 rotate 360°
@@ -1355,31 +1353,31 @@ shake
 scale 1.5
 ```
 
-除非它本身就是 feedback animation。
+unless it is itself a feedback animation.
 
 ---
 
 # 35. Loading
 
-Loading animation 應該：
+Loading animation should:
 
-- 表示 progress / waiting
-- 不造成視覺噪音
-- 不使用高頻 flash
+- represent progress / waiting
+- not create visual noise
+- not use high-frequency flashing
 
-避免：
+Avoid:
 
 ```text
 infinite bouncing UI
 ```
 
-Microsoft performance guidance 也建議謹慎使用 infinite animations，因為持續動畫會持續消耗 CPU。
+The Microsoft performance guidance also suggests using infinite animations with care, because continuous animation keeps consuming CPU.
 
 ---
 
 # 36. Skeleton
 
-Skeleton：
+Skeleton:
 
 ```text
 Static shape
@@ -1387,15 +1385,15 @@ Static shape
 subtle shimmer
 ```
 
-Shimmer 不是必要。
+Shimmer is not required.
 
-低功耗：
+On low power:
 
 ```text
 No shimmer
 ```
 
-優先於：
+is preferable to:
 
 ```text
 Full-page animated shimmer
@@ -1405,7 +1403,7 @@ Full-page animated shimmer
 
 # 37. Pointer Highlight
 
-可以使用 subtle radial highlight：
+A subtle radial highlight may be used:
 
 ```css
 .interactive-surface {
@@ -1421,7 +1419,7 @@ Full-page animated shimmer
 }
 ```
 
-只對：
+Use it only on:
 
 ```text
 Card
@@ -1429,22 +1427,20 @@ Button
 Navigation surface
 ```
 
-使用。
-
-不要全站追蹤 pointer。
+Do not track the pointer across the whole site.
 
 ---
 
 # 38. Performance
 
-Web implementation 必須優先動畫：
+Web implementation must animate these first:
 
 ```text
 transform
 opacity
 ```
 
-避免頻繁動畫：
+Avoid animating these frequently:
 
 ```text
 width
@@ -1460,7 +1456,7 @@ font-size
 
 # 39. `will-change`
 
-禁止：
+Forbidden:
 
 ```css
 * {
@@ -1468,7 +1464,7 @@ font-size
 }
 ```
 
-只在真的需要時：
+Only when genuinely needed:
 
 ```css
 .card.is-animating {
@@ -1476,21 +1472,21 @@ font-size
 }
 ```
 
-動畫完成後移除。
+Remove it after the animation completes.
 
 ---
 
 # 40. requestAnimationFrame
 
-不要用：
+Do not use:
 
 ```js
 requestAnimationFrame(loop);
 ```
 
-建立永遠運行的 UI animation，除非這是確實需要的 rendering task。
+to build a UI animation that runs forever, unless it is a rendering task that genuinely needs it.
 
-如果只是：
+If it is just:
 
 ```text
 hover
@@ -1499,13 +1495,13 @@ dropdown
 dialog
 ```
 
-優先 CSS。
+prefer CSS.
 
 ---
 
 # 41. Reduced Motion
 
-必須支援：
+Support is mandatory:
 
 ```css
 @media (prefers-reduced-motion: reduce) {
@@ -1520,15 +1516,15 @@ dialog
 }
 ```
 
-但是 reduced motion 不應等於：
+But reduced motion should not mean:
 
 ```text
 UI disappears
 ```
 
-只移除 movement。
+Remove only the movement.
 
-仍然保留：
+Still keep:
 
 ```text
 state
@@ -1541,7 +1537,7 @@ hierarchy
 
 # 42. JavaScript Reduced Motion
 
-需要 JS animation 時：
+When a JS animation is needed:
 
 ```js
 const reduceMotion = window.matchMedia(
@@ -1549,13 +1545,13 @@ const reduceMotion = window.matchMedia(
 ).matches;
 ```
 
-如果：
+If:
 
 ```js
 reduceMotion === true
 ```
 
-則：
+then:
 
 ```text
 No stagger
@@ -1569,15 +1565,15 @@ No unnecessary movement
 
 # 43. Accessibility Motion
 
-Animation 不應該是唯一的信息來源。
+Animation should not be the only source of information.
 
-錯誤：
+Wrong:
 
 ```text
-紅色動畫 = error
+Red animation = error
 ```
 
-正確：
+Correct:
 
 ```text
 Error text
@@ -1589,13 +1585,13 @@ visual state
 optional motion
 ```
 
-Fluent accessibility guidance 也指出，動畫所傳達的重要資訊應有其他方式提供，例如 ARIA live regions。
+The Fluent accessibility guidance also points out that important information conveyed by animation should be available another way, for example through ARIA live regions.
 
 ---
 
 # 44. Mobile
 
-Mobile：
+Mobile:
 
 ```text
 Less motion
@@ -1604,9 +1600,9 @@ Less pointer effects
 More direct feedback
 ```
 
-不要在 mobile 模擬 desktop hover。
+Do not imitate desktop hover on mobile.
 
-Touch feedback 優先：
+Touch feedback comes first:
 
 ```text
 Tap
@@ -1618,29 +1614,29 @@ Release
 
 # 45. Responsive Motion
 
-動畫 distance 應隨 viewport 調整。
+Animation distance should adapt to the viewport.
 
-Desktop：
+Desktop:
 
 ```text
 translateY(12px)
 ```
 
-Mobile：
+Mobile:
 
 ```text
 translateY(6px)
 ```
 
-大型 dialog：
+Large dialog:
 
-Desktop：
+Desktop:
 
 ```text
 scale + translate
 ```
 
-Mobile：
+Mobile:
 
 ```text
 bottom sheet / small translate
@@ -1650,7 +1646,7 @@ bottom sheet / small translate
 
 # 46. Astro Architecture
 
-推薦：
+Recommended:
 
 ```text
 src/
@@ -1675,15 +1671,15 @@ src/
     └── fluent-components.css
 ```
 
-實際 repository 若已有 architecture：
+If the actual repository already has an architecture:
 
-**優先整合，而不是重建。**
+**integrate with it first, rather than rebuilding.**
 
 ---
 
 # 47. CSS Token Architecture
 
-推薦：
+Recommended:
 
 ```text
 Primitive
@@ -1693,7 +1689,7 @@ Semantic
 Component
 ```
 
-例如：
+For example:
 
 ```css
 --fluent-blue-500
@@ -1703,7 +1699,7 @@ Component
 --button-background
 ```
 
-Motion：
+Motion:
 
 ```css
 --fluent-duration-fast
@@ -1717,7 +1713,7 @@ Motion：
 
 # 48. Component State Model
 
-所有 interactive components 優先建立：
+Every interactive component should preferably establish:
 
 ```text
 Rest
@@ -1730,13 +1726,13 @@ Loading
 Open
 ```
 
-不是每個 component 都需要所有 state。
+Not every component needs every state.
 
 ---
 
 # 49. State Transition Rule
 
-State transition 應：
+State transition should be:
 
 ```text
 predictable
@@ -1744,20 +1740,20 @@ short
 reversible
 ```
 
-例如：
+For example:
 
 ```text
 Closed → Open
 Open → Closed
 ```
 
-使用同一個 visual language。
+using the same visual language.
 
 ---
 
-# 50. Fluent Select 完整規範
+# 50. Fluent Select Complete Specification
 
-Select：
+Select:
 
 ```text
 Rest
@@ -1770,7 +1766,7 @@ Option Selected
 Disabled
 ```
 
-Open animation：
+Open animation:
 
 ```text
 opacity
@@ -1778,28 +1774,28 @@ scale
 translateY
 ```
 
-Selected option：
+Selected option:
 
 ```text
 background
 check icon
 ```
 
-不要讓 selected item 大幅跳動。
+Do not let the selected item jump around substantially.
 
 ---
 
 # 51. Fancy Select Overlay Rule
 
-特別規定：
+Explicit requirement:
 
 ```text
 .fancy-select-list
 ```
 
-必須位於 overlay hierarchy。
+must live in the overlay hierarchy.
 
-如果出現：
+If the situation is:
 
 ```text
 Fancy Select
@@ -1809,11 +1805,11 @@ Card
 Blog Preview
 ```
 
-而 dropdown 被 card 擋住：
+and the dropdown is hidden behind the card:
 
-**不得直接增加 z-index 作為唯一修復。**
+**you must not simply raise z-index as the only fix.**
 
-必須檢查：
+You must check:
 
 ```text
 overflow
@@ -1826,7 +1822,7 @@ isolation
 position
 ```
 
-必要時使用：
+and use this where necessary:
 
 ```html
 #overlay-root
@@ -1836,7 +1832,7 @@ position
 
 # 52. Surface Consistency
 
-以下 surfaces 不應使用完全不同的透明度：
+The following surfaces should not use completely different transparency:
 
 ```text
 Card
@@ -1847,13 +1843,13 @@ Dialog
 Navigation
 ```
 
-應建立：
+Establish:
 
 ```text
 Surface hierarchy
 ```
 
-例如：
+For example:
 
 ```text
 Base surface
@@ -1867,7 +1863,7 @@ Dialog surface
 
 # 53. Shadow System
 
-建立：
+Establish:
 
 ```css
 :root {
@@ -1885,19 +1881,19 @@ Dialog surface
 }
 ```
 
-實際 shadow 必須配合網站 light/dark theme。
+The actual shadow must work with the site's light/dark theme.
 
 ---
 
 # 54. Dark Mode
 
-Dark Fluent UI 不應只是：
+Dark Fluent UI should not be just:
 
 ```text
-白色 → 黑色
+White → Black
 ```
 
-需要重新考慮：
+It needs to reconsider:
 
 ```text
 surface
@@ -1907,7 +1903,7 @@ contrast
 transparency
 ```
 
-Dark mode 中 shadow 可能需要降低存在感，改由：
+In dark mode the shadow may need to be more restrained, leaving hierarchy to:
 
 ```text
 border
@@ -1915,13 +1911,11 @@ contrast
 surface separation
 ```
 
-建立 hierarchy。
-
 ---
 
 # 55. Light Mode
 
-Light mode：
+Light mode:
 
 ```text
 Shadow
@@ -1931,15 +1925,15 @@ Border
 Surface difference
 ```
 
-三者不要全部拉滿。
+Do not max out all three at once.
 
-否則 UI 會顯得厚重。
+Otherwise the UI looks heavy.
 
 ---
 
 # 56. Typography
 
-Typography hierarchy：
+Typography hierarchy:
 
 ```text
 Display
@@ -1950,9 +1944,9 @@ Caption
 Metadata
 ```
 
-不要用 animation 改變 font-size。
+Do not use animation to change font-size.
 
-如果需要 hierarchy animation：
+If hierarchy animation is needed:
 
 ```text
 opacity
@@ -1963,9 +1957,9 @@ transform
 
 # 57. Content First
 
-文字本身永遠優先於 motion。
+The text itself always takes priority over motion.
 
-錯誤：
+Wrong:
 
 ```text
 Animation
@@ -1973,7 +1967,7 @@ Animation
 content appears after 1 second
 ```
 
-正確：
+Correct:
 
 ```text
 Content immediately available
@@ -1981,22 +1975,22 @@ Content immediately available
 subtle enhancement
 ```
 
-Animation 不應阻止使用者閱讀。
+Animation should not stop users from reading.
 
 ---
 
 # 58. Loading Strategy
 
-如果 server content 已經 ready：
+If server content is already ready:
 
-不要：
+Don't:
 
 ```text
 wait for animation
 then show content
 ```
 
-應：
+Do:
 
 ```text
 render content
@@ -2008,13 +2002,13 @@ animate presentation
 
 # 59. No `transition: all`
 
-禁止：
+Forbidden:
 
 ```css
 transition: all 0.3s ease;
 ```
 
-改成：
+Use instead:
 
 ```css
 transition:
@@ -2022,9 +2016,9 @@ transition:
   transform 167ms var(--fluent-ease-standard);
 ```
 
-原因：
+Reason:
 
-避免不必要 property 被動畫化，降低不可預期的 layout / rendering 成本。
+to avoid animating unnecessary properties, which lowers unpredictable layout / rendering cost.
 
 ---
 
@@ -2046,7 +2040,7 @@ transition:
 
 # 61. Motion Decision Tree
 
-當 Agent / Developer 想加入動畫時：
+When an Agent / Developer wants to add animation:
 
 ```text
 Does motion communicate something?
@@ -2124,7 +2118,7 @@ Probably unnecessary
 
 WinUI guidance emphasizes smooth interaction and warns against unnecessary continuous animations.
 
-Web version：
+Web version:
 
 ```text
 Prefer compositor-friendly motion
@@ -2142,9 +2136,9 @@ JS only when necessary
 
 # 64. Astro Lifecycle
 
-如果網站使用 Astro client navigation：
+If the site uses Astro client navigation:
 
-初始化應配合：
+initialization should follow:
 
 ```js
 document.addEventListener(
@@ -2155,7 +2149,7 @@ document.addEventListener(
 );
 ```
 
-避免：
+Avoid:
 
 ```text
 page A listener
@@ -2165,57 +2159,57 @@ page B listener
 page C listener
 ```
 
-造成重複事件。
+creating duplicate events.
 
 ---
 
 # 65. Event Management
 
-不要：
+Don't:
 
 ```js
 element.addEventListener(...)
 ```
 
-每次 page navigation 都重複註冊。
+register repeatedly on every page navigation.
 
-使用：
+Use:
 
 ```text
 idempotent initialization
 ```
 
-或：
+or:
 
 ```text
 AbortController
 ```
 
-管理 listener lifecycle。
+to manage listener lifecycle.
 
 ---
 
 # 66. IntersectionObserver
 
-Scroll reveal：
+Scroll reveal:
 
 ```text
 IntersectionObserver
 ```
 
-優先於：
+takes priority over:
 
 ```text
 scroll event + getBoundingClientRect()
 ```
 
-因為 reveal 是 visibility problem，不是 continuous animation problem。
+because reveal is a visibility problem, not a continuous animation problem.
 
 ---
 
 # 67. Web Animation API
 
-適合：
+Suitable for:
 
 ```text
 Connected animation
@@ -2224,7 +2218,7 @@ Runtime-calculated transform
 Complex sequence
 ```
 
-不適合：
+Not suitable for:
 
 ```text
 Button hover
@@ -2233,13 +2227,13 @@ Simple dropdown
 Simple tooltip
 ```
 
-這些優先 CSS。
+These prefer CSS.
 
 ---
 
 # 68. View Transition API
 
-適合：
+Suitable for:
 
 ```text
 Page navigation
@@ -2247,21 +2241,21 @@ Connected elements
 Large state changes
 ```
 
-必須 feature detect。
+Feature detection is mandatory.
 
-如果不支援：
+If unsupported:
 
 ```text
 Normal navigation
 ```
 
-仍然正常。
+still works normally.
 
 ---
 
 # 69. Progressive Enhancement
 
-Fluent enhancement 必須遵守：
+Fluent enhancement must follow:
 
 ```text
 No JS
@@ -2281,17 +2275,17 @@ View Transition supported
 Connected motion
 ```
 
-動畫永遠不能成為核心功能的依賴。
+Animation must never be a dependency of core functionality.
 
 ---
 
 # 70. AI Agent Implementation Rules
 
-AI Agent 在修改網站之前必須：
+Before modifying the site, an AI Agent must:
 
 ### Step 1
 
-Audit：
+Audit:
 
 ```text
 package.json
@@ -2304,7 +2298,7 @@ src/styles
 
 ### Step 2
 
-找出：
+Identify:
 
 ```text
 Navigation
@@ -2318,11 +2312,11 @@ View Transition
 
 ### Step 3
 
-不要猜檔案。
+Do not guess at files.
 
 ### Step 4
 
-先建立：
+Establish first:
 
 ```text
 Tokens
@@ -2334,15 +2328,15 @@ Accessibility
 
 ### Step 5
 
-再修改 components。
+Then modify components.
 
 ### Step 6
 
-每一階段 build。
+Build at every stage.
 
 ---
 
-# 71. AI Agent 修改優先級
+# 71. AI Agent Modification Priority
 
 ```text
 1. Existing architecture
@@ -2355,13 +2349,13 @@ Accessibility
 8. Decorative enhancements
 ```
 
-永遠不要：
+Never let:
 
 ```text
 Decorative animation
 ```
 
-優先於：
+take precedence over:
 
 ```text
 Accessibility
@@ -2374,11 +2368,11 @@ Performance
 
 # 72. Dependency Rule
 
-如果 CSS / Web API 可以解決：
+If CSS / Web APIs can solve it:
 
-**不要安裝 package。**
+**do not install a package.**
 
-如果網站已有：
+If the site already has:
 
 ```text
 Motion One
@@ -2386,9 +2380,9 @@ GSAP
 Framer Motion
 ```
 
-也不要立即替換。
+do not replace them immediately either.
 
-先評估：
+Evaluate first:
 
 ```text
 Existing dependency
@@ -2402,13 +2396,13 @@ bundle cost
 
 # 73. Testing
 
-每次 motion system 修改後：
+After every change to the motion system:
 
 ```bash
 npm run build
 ```
 
-如果存在：
+If these exist:
 
 ```bash
 npm run check
@@ -2416,13 +2410,13 @@ npm run lint
 npm run test
 ```
 
-全部執行。
+run all of them.
 
 ---
 
 # 74. Browser Testing
 
-至少測：
+Test at least:
 
 ```text
 Chromium
@@ -2430,7 +2424,7 @@ Firefox
 Safari
 ```
 
-以及：
+and:
 
 ```text
 Desktop
@@ -2442,7 +2436,7 @@ Mobile
 
 # 75. Accessibility Testing
 
-確認：
+Confirm:
 
 ```text
 prefers-reduced-motion
@@ -2457,7 +2451,7 @@ touch target
 
 # 76. Performance Testing
 
-DevTools：
+DevTools:
 
 ```text
 Performance
@@ -2467,7 +2461,7 @@ Memory
 Network
 ```
 
-注意：
+Watch for:
 
 ```text
 Long Tasks
@@ -2481,7 +2475,7 @@ Memory growth
 
 # 77. Final Quality Bar
 
-一個 Fluent animation 如果符合：
+A Fluent animation may be kept only if it satisfies:
 
 ```text
 User understands what happened
@@ -2497,13 +2491,11 @@ Animation can be disabled
 No performance regression
 ```
 
-才可以保留。
-
 ---
 
 # 78. Fluent Web Golden Rules
 
-最後只記住這 12 條：
+In the end, remember just these 12:
 
 ```text
 01. Motion must have a purpose.
@@ -2524,7 +2516,7 @@ No performance regression
 
 # 79. Reference Mapping
 
-本規範主要參考：
+This specification mainly references:
 
 - Fluent 2 Design System — Design Principles
 - Fluent 2 Design System — Motion
@@ -2536,15 +2528,15 @@ No performance regression
 - Windows Apps — Connected Animation
 - Windows Apps — Animation Performance
 
-Fluent 2 官方 motion 指南目前將 motion transition 分為 Enter/Exit、Elevation、Top Level、Container Transform 等常見模式；Windows guidance 同時提供標準 duration 與 easing guidance。
+The official Fluent 2 motion guidance currently groups motion transitions into common patterns such as Enter/Exit, Elevation, Top Level, and Container Transform; the Windows guidance also provides standard duration and easing guidance.
 
 ---
 
 # 80. Final Design Philosophy
 
-這套系統的最終目標不是讓 Astro 網站「看起來像一個 Windows App」。
+The ultimate goal of this system is not to make an Astro site "look like a Windows App".
 
-而是：
+It is:
 
 ```text
 Astro Web
@@ -2562,28 +2554,28 @@ Responsive behavior
 Performance discipline
 ```
 
-形成一個：
+to form:
 
 > **Fluent-inspired Web Experience**
 
-它應該讓使用者在第一次看到網站時感受到：
+On first seeing the site, the user should feel:
 
 ```text
-清晰
-有層次
-有重量
-有反應
-有連續性
-但不喧賓奪主
+Clear
+Layered
+Weighty
+Responsive
+Continuous
+but never stealing the show
 ```
 
-這才是本 Design System 的完成標準。
+That is this Design System's completion criterion.
 
 ---
 
-# 81. Design Token Master Reference（Agent 快查表）
+# 81. Design Token Master Reference (Agent quick lookup table)
 
-> 本節彙整全文出現過的所有 CSS custom properties，作為單一查詢入口。**若正文其他段落的數值與本節不一致，以本節為準**，並視為文件內部尚未同步的錯誤（歡迎回報／修正正文）。Agent 在撰寫任何新元件前，應先查本節是否已有可用 token，而不是新發明數值。
+> This section consolidates every CSS custom property that appears in the document, as a single lookup entry point. **If a value elsewhere in the body disagrees with this section, this section wins**, and that is treated as an error where the document has not yet been synchronised internally (reports / fixes to the body are welcome). Before writing any new component, an Agent should first check whether this section already has a usable token, rather than inventing new values.
 
 ```css
 :root {
@@ -2636,72 +2628,75 @@ Performance discipline
 }
 ```
 
-### 對照表：什麼場景查哪個 token
+### Lookup table: which token group to consult for which scenario
 
-| 需求 | 查哪一組 token | 對應章節 |
+| Need | Which token group | Section |
 |---|---|---|
-| 元件圓角 | `--fluent-radius-*` | §3 |
-| 元件內外距 | `--fluent-space-*` | §4 |
-| Hover / press / dropdown 動畫時長 | `--fluent-duration-*` | §11 |
-| Enter / 狀態變化 / Exit 的曲線 | `--fluent-ease-*` | §12–§13 |
-| Dropdown / Dialog / Toast 疊放順序 | `--fluent-layer-*` | §7–§8 |
-| Card / Overlay 立體感 | `--fluent-shadow-*` | §53 |
+| Component corner radius | `--fluent-radius-*` | §3 |
+| Component inner / outer spacing | `--fluent-space-*` | §4 |
+| Hover / press / dropdown animation duration | `--fluent-duration-*` | §11 |
+| Curves for Enter / state change / Exit | `--fluent-ease-*` | §12–§13 |
+| Stacking order for Dropdown / Dialog / Toast | `--fluent-layer-*` | §7–§8 |
+| Depth for Card / Overlay | `--fluent-shadow-*` | §53 |
 
-實際數值必須配合網站既有 light/dark theme（見 §54–§55），不要把本表當成寫死的顏色系統——本表只涵蓋 geometry / timing / elevation，不涵蓋色彩 token。
+The actual values must work with the site's existing light/dark theme (see §54–§55); do not treat this table as a hard-coded colour system — it covers only geometry / timing / elevation, not colour tokens.
 
 ---
 
-# 82. Pre-Change Checklist（送出修改前必須逐項確認）
+# 82. Pre-Change Checklist (confirm every item before submitting)
 
-Agent 在完成一次 CSS / motion 相關修改、要回報「完成」之前，必須能對以下每一項回答「是」，否則需要回頭修正：
+Before reporting "done" after a CSS / motion related change, an Agent must be able to answer "yes" to every item below; otherwise go back and fix it:
 
 ```text
-[ ] 所有 radius / spacing / duration / easing / elevation / shadow 數值都來自 §81 token，
-    沒有新發明的 magic number（例如 13px、0.37s、z-index: 99999）
-[ ] 沒有使用 `transition: all`（§59）
-[ ] Hover / press 動畫只動 transform 與 opacity 等 compositor-friendly 屬性，
-    沒有同時對 width / height / top / left / margin / padding / font-size 做動畫（§38）
-[ ] 已加入 @media (prefers-reduced-motion: reduce) 或等效的 JS matchMedia 檢查，
-    且 reduced-motion 下仍保留 state / visibility / focus / hierarchy（§41–§42）
-[ ] Focus ring 獨立於 hover 動畫，不會因為 reduced motion 或動畫被中斷而消失（§21）
-[ ] Dropdown / Flyout / Dialog / Toast 等 overlay 元件，
-    是放進 overlay 層級（如 #overlay-root）解決疊放問題，
-    而不是單純調高 z-index 數值（§8、§51）
-[ ] Enter 動畫時長 ≥ Exit 動畫時長（§15）
-[ ] 若修改的是 §60 Animation Matrix 中列出的元件，行為與該表一致
-[ ] 沒有新增動畫函式庫（GSAP / Framer Motion / Motion One 等），
-    除非確認 CSS / Web Animation API / View Transition API 無法勝任，
-    且評估過現有依賴與 bundle cost（§72）
-[ ] npm run build 通過；若專案存在 npm run check / lint / test，也一併執行並通過（§73）
-[ ] 已至少概念性確認 Chromium / Firefox / Safari 與 Desktop / Tablet / Mobile 的行為（§74）
-[ ] 沒有動到任務範圍以外的檔案；如果有，已在回報中明確說明原因
-[ ] 對照 §78 的 12 條 Golden Rules，沒有明顯牴觸
+[ ] All radius / spacing / duration / easing / elevation / shadow values come from §81 tokens,
+    with no newly invented magic numbers (for example 13px, 0.37s, z-index: 99999)
+[ ] `transition: all` is not used (§59)
+[ ] Hover / press animations only move compositor-friendly properties such as transform and opacity,
+    and do not animate width / height / top / left / margin / padding / font-size at the same time (§38)
+[ ] @media (prefers-reduced-motion: reduce) or an equivalent JS matchMedia check has been added,
+    and state / visibility / focus / hierarchy are still preserved under reduced motion (§41–§42)
+[ ] The focus ring is independent of hover animation and does not disappear because of
+    reduced motion or because an animation was interrupted (§21)
+[ ] Overlay components such as Dropdown / Flyout / Dialog / Toast solve stacking
+    by living in the overlay layer (e.g. #overlay-root),
+    rather than simply raising the z-index number (§8, §51)
+[ ] Enter animation duration >= Exit animation duration (§15)
+[ ] If a component listed in the §60 Animation Matrix was changed, behaviour matches that table
+[ ] No animation library was added (GSAP / Framer Motion / Motion One, etc.)
+    unless CSS / Web Animation API / View Transition API were confirmed insufficient,
+    and existing dependencies and bundle cost were evaluated (§72)
+[ ] npm run build passes; if the project has npm run check / lint / test, those were run and pass too (§73)
+[ ] Behaviour was at least conceptually confirmed on Chromium / Firefox / Safari
+    and on Desktop / Tablet / Mobile (§74)
+[ ] No files outside the task scope were touched; if any were, the reason is stated
+    explicitly in the report
+[ ] Compared against the 12 Golden Rules in §78, with no clear conflict
 ```
 
 ---
 
-# 83. Agent 常見失誤模式（Common Agent Failure Patterns）
+# 83. Common Agent Failure Patterns
 
-以下是 AI Agent 在實作本規範時，實務上最容易出現的偏差，附上成因與正確做法，供 Agent 自我檢查（也可作為 code review 時的提示清單）。
+The following are the deviations AI Agents most often produce in practice when implementing this specification, with cause and correct approach, for Agent self-checking (they can also serve as a prompt list during code review).
 
-| 失誤模式 | 常見成因 | 正確做法 | 對應章節 |
+| Failure pattern | Common cause | Correct approach | Section |
 |---|---|---|---|
-| 用任意 px / ms 數值（如 `13px`、`370ms`）而不是 token | 生成時傾向給出「看起來合理」的獨立數字 | 一律查 §81，找不到對應 token 才考慮是否要提案新增 | §3 §4 §11 §12 §81 |
-| 寫 `transition: all` 圖方便 | 省得列屬性 | 明確列出要動畫的屬性（通常只有 transform / opacity / background-color 等） | §59 |
-| 沒有先 audit 專案結構就直接新建或覆寫檔案 | 跳過探索步驟、假設檔案路徑 | 先執行 §70 Step 1（audit package.json / astro.config / src 結構），確認架構後再動手 | §70 |
-| Dropdown 被遮住時直接把 z-index 調到 999999 | 治標不治本、最快「看起來」解決 | 檢查是否有 transform / filter / backdrop-filter / opacity / isolation / contain 造成新的 stacking context，必要時搬進 overlay 層 | §8 §51 |
-| 一個 hover 同時觸發 scale + rotate + glow + shadow + blur | 想讓效果「更豐富」 | 每次互動只疊加 1–2 種效果，其餘留給 elevation / surface 表達 | §18 |
-| 忽略 `prefers-reduced-motion`，或 JS 動畫沒有 `matchMedia` 檢查 | 只在預設瀏覽器設定下測試 | 一律加入檢查；reduced motion 下移除位移動畫但保留狀態與可見性 | §41 §42 |
-| 為了做動畫就安裝新的動畫函式庫 | 想要更精細的控制 | 先評估 CSS transition / Web Animation API / View Transition API 是否足夠；已有依賴時先評估而非替換 | §72 |
-| 把裝飾性動畫的優先權排在無障礙 / 效能 / 功能之前 | 動畫寫起來有明顯的「完成感」 | Decorative enhancement 永遠是修改優先級中最後一項 | §71 |
-| 生成看似合理但其實是編造的 CSS 屬性或瀏覽器 API | 模型幻覺，記憶中的 API 細節不精確 | 以本文件已附的程式碼範例為準，不確定的 API 需要另外查證，不要憑印象生成 | 全文 |
-| 大幅修改超出任務範圍的檔案或既有 architecture | 想「順便」整理或統一風格 | §71 明訂 Existing architecture 與 Existing visual language 優先權最高，非必要不動 | §46 §71 |
+| Using arbitrary px / ms values (such as `13px`, `370ms`) instead of tokens | Generation tends to produce "plausible-looking" standalone numbers | Always consult §81; only consider proposing a new token if no matching one exists | §3 §4 §11 §12 §81 |
+| Writing `transition: all` for convenience | Saves listing properties | Explicitly list the properties to animate (usually only transform / opacity / background-color, etc.) | §59 |
+| Creating or overwriting files without auditing the project structure first | Skipping the exploration step, assuming file paths | Run §70 Step 1 first (audit package.json / astro.config / src structure), confirm the architecture, then act | §70 |
+| Raising z-index to 999999 when a Dropdown is covered | Treats the symptom, the fastest way to "look" solved | Check whether transform / filter / backdrop-filter / opacity / isolation / contain created a new stacking context, and move it into the overlay layer where necessary | §8 §51 |
+| One hover triggering scale + rotate + glow + shadow + blur at once | Wanting the effect to look "richer" | Layer only 1–2 effects per interaction; leave the rest to elevation / surface | §18 |
+| Ignoring `prefers-reduced-motion`, or JS animation without a `matchMedia` check | Testing only under default browser settings | Always add the check; under reduced motion remove translation animation but keep state and visibility | §41 §42 |
+| Installing a new animation library just to animate | Wanting finer control | First evaluate whether CSS transitions / Web Animation API / View Transition API suffice; with existing dependencies, evaluate rather than replace | §72 |
+| Putting decorative animation ahead of accessibility / performance / functionality | Animated code gives an obvious sense of "completion" | Decorative enhancement is always the last item in the modification priority | §71 |
+| Generating plausible-looking but fabricated CSS properties or browser APIs | Model hallucination, imprecise memory of API details | Follow the code samples already in this document; verify uncertain APIs separately rather than generating from impression | throughout |
+| Broadly modifying files or existing architecture beyond task scope | Wanting to "tidy up" or unify style along the way | §71 states that Existing architecture and Existing visual language have the highest priority; do not touch unless necessary | §46 §71 |
 
 ---
 
-# 84. Machine-Readable Rule Manifest（YAML）
+# 84. Machine-Readable Rule Manifest (YAML)
 
-> 提供給需要程式化解析（例如 lint 腳本、CI 檢查、另一個 Agent 的 pre-flight 讀取）使用的精簡版本。內容是 §81–§83 的結構化摘要，人類閱讀請以前述章節為準；本區塊若與前述章節數值不一致，以 §81 的 CSS 區塊為最終真相來源。
+> A condensed version for programmatic parsing (for example lint scripts, CI checks, another Agent's pre-flight read). It is a structured summary of §81–§83; for human reading, the sections above take precedence; if this block disagrees with the sections above, the §81 CSS block is the final source of truth.
 
 ```yaml
 document:

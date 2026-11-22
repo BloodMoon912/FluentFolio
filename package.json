@@ -21,8 +21,7 @@
     "format:check": "prettier --check .",
     "test": "node --test \"tests/*.test.ts\"",
     "deploy": "npm run build && wrangler deploy",
-    "cf-typegen": "wrangler types",
-    "check:hko-time": "node scripts/check-hko-ntp.mjs"
+    "cf-typegen": "wrangler types"
   },
   "dependencies": {
     "@astrojs/cloudflare": "14.4.2",

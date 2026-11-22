@@ -1,125 +1,186 @@
-# 後台雙層驗證與 Passkey 設計
+# Admin two-layer authentication and Passkey design
 
-## 驗證順序
+## Verification order
 
 ```text
 Browser
   │
   ▼
-Cloudflare Access（Zero Trust Edge）
-  │  Access Policy：只允許指定管理員 Email
-  │  驗證成功後簽發 Access Application JWT
+Cloudflare Access (Zero Trust Edge)
+  │  Access Policy: only the designated administrator email is allowed
+  │  Issues an Access Application JWT after successful verification
   ▼
 Cloudflare Worker / Astro middleware
-  │  驗證 CF-Access-Jwt-Assertion 的 RS256 簽章、iss、aud、exp、nbf、iat
-  │  失敗或未設定時 fail closed
+  │  Verifies the RS256 signature, iss, aud, exp, nbf and iat of CF-Access-Jwt-Assertion
+  │  Fails closed when verification fails or configuration is missing
   ▼
 /admin/login
   │
-  ├── Passkey（優先；WebAuthn + discoverable credential）
+  ├── Passkey (preferred; WebAuthn + discoverable credential)
   │
-  └── 密碼（備用；與 Passkey 互為替代）
+  └── Password (fallback; interchangeable with Passkey)
           │
           ▼
-  __Host-bm-admin（隨機 session ID + HMAC 簽章、HttpOnly、Secure、SameSite=Lax、7 天）
+  __Host-bm-admin (random session ID + HMAC signature, HttpOnly, Secure, SameSite=Lax, 7 days)
           │
           ▼
-  admin_sessions（D1）：每次請求驗簽章、檢查未過期、未撤銷
+  admin_sessions (D1): verifies the signature, checks expiry and revocation on every request
           │
           ▼
   /admin + /api/admin/*
 ```
 
-Cloudflare Access 和網站帳戶驗證是兩道獨立檢查。Access JWT 驗證放在 Astro middleware，因此 `/admin`、`/admin/login` 及所有 `/api/admin/*`（包括 Passkey options/verify）都先經過同一個 Worker-side Access 驗證。單純存在 `CF-Access-Jwt-Assertion` Header 不足以通過檢查。
+Cloudflare Access and site account authentication are two independent checks. Access JWT verification
+lives in the Astro middleware, so `/admin`, `/admin/login` and every `/api/admin/*` (including the
+Passkey options/verify endpoints) pass through the same Worker-side Access verification first. Merely
+having a `CF-Access-Jwt-Assertion` header present is not enough to pass the check.
 
-唯一的開發例外是 `astro dev` 在 `localhost`、`127.0.0.1` 或 `::1`；正式建置／部署沒有 Access bypass。
+The only development exception is `astro dev` on `localhost`, `127.0.0.1` or `::1`; production builds
+and deployments have no Access bypass.
 
-## Cloudflare Access 必要設定
+## Required Cloudflare Access configuration
 
-1. Cloudflare Dashboard → Zero Trust → Access controls → Applications → Add an application → Self-hosted。
-2. 以正式網站 hostname 建立保護規則，至少涵蓋：
+1. Cloudflare Dashboard → Zero Trust → Access controls → Applications → Add an application → Self-hosted.
+2. Create the protection rule on the production site hostname, covering at least:
    - `www.example.com/admin*`
    - `www.example.com/api/admin*`
-3. 對兩個路徑套用相同的 Allow Policy，Include → Emails → 只加入管理員信箱。若 Dashboard 不接受同一 Application 的多個 Path，建立兩個 Application 並套用同一 Policy。
-4. 在 Access Application 的 Additional settings 複製 **Application Audience (AUD) Tag**。
-5. 到 Zero Trust 設定頁確認 team domain，例如 `https://<team-name>.cloudflareaccess.com`。
-6. 單一 Access Application 同時保護頁面與 API 時，填入 `ACCESS_AUD`；若分成兩個 Application，分別填入 `ACCESS_ADMIN_AUD`（`/admin*`）和 `ACCESS_API_AUD`（`/api/admin*`）。不要用逗號把不同路徑的 AUD 合併成全域 allow-list，否則可能跨路徑重用 JWT。兩者缺一，Worker 會對後台回傳 503，不會默認放行。
-7. Access app 必須套用正式 hostname。即使訪問 `workers.dev` 或其他未經 Access edge 規則的入口，Worker middleware 仍要求相同 Access issuer 和 audience 的有效簽章 JWT。
-8. AUD 的路徑族判斷會先正規化路徑（重複百分號解碼、`.`／`..` 段解析、折疊重複斜線），所以 `//api/admin/*`、`/api/%61dmin/*` 這類寫法仍會被歸類為 API，不能拿管理頁 Application 的 JWT 呼叫 API。middleware 若載入驗證器失敗，會 fail closed 回 503（頁面 text/plain、API JSON），不會放行。
+3. Apply the same Allow Policy to both paths: Include → Emails → add only the administrator mailbox. If
+   the Dashboard will not accept multiple Paths on one Application, create two Applications and apply
+   the same Policy to each.
+4. Copy the **Application Audience (AUD) Tag** from the Access Application's Additional settings.
+5. Confirm the team domain on the Zero Trust settings page, for example
+   `https://<team-name>.cloudflareaccess.com`.
+6. When a single Access Application protects both the pages and the API, set `ACCESS_AUD`; when you split
+   them into two Applications, set `ACCESS_ADMIN_AUD` (`/admin*`) and `ACCESS_API_AUD` (`/api/admin*`)
+   separately. Do not join the AUDs of different paths into one global allow-list with commas, or a JWT
+   could be reused across paths. If either value is missing, the Worker returns 503 for the admin area
+   instead of allowing it by default.
+7. The Access app must be applied to the production hostname. Even when the site is reached through
+   `workers.dev` or another entry point that the Access edge rules do not cover, the Worker middleware
+   still requires a validly signed JWT from the same Access issuer and audience.
+8. The AUD path-family decision normalises the path first (repeated percent-decoding, `.`／`..` segment
+   resolution, collapsed duplicate slashes), so forms such as `//api/admin/*` and `/api/%61dmin/*` are
+   still classified as API, and the JWT from the admin-page Application cannot be used to call the API.
+   If the middleware fails to load the verifier it fails closed with 503 (text/plain for pages, JSON for
+   the API) rather than letting the request through.
 
-Worker 只接受 `Cf-Access-Jwt-Assertion` Header，並使用 team domain 的 `/cdn-cgi/access/certs` 公鑰驗證 RS256 簽章，再核對精確 issuer、Application AUD 和時間 claims。它不以 Header 存在與否、`CF_Authorization` Cookie 或訪客提供的 Email 當作身份證明。
+The Worker accepts only the `Cf-Access-Jwt-Assertion` header, verifies the RS256 signature against the
+public keys from the team domain's `/cdn-cgi/access/certs`, and then checks the exact issuer, the
+Application AUD and the time claims. It does not treat the mere presence of the header, the
+`CF_Authorization` cookie or a visitor-supplied email as proof of identity.
 
-## Passkey 初次設定
+## First-time Passkey setup
 
-Passkey 和密碼不是連續兩個 MFA 步驟，而是兩種可互相替代的網站帳戶登入方式。兩者都必須先通過 Cloudflare Access。
+A Passkey and a password are not two consecutive MFA steps but two interchangeable ways to sign in to the
+site account. Both must pass Cloudflare Access first.
 
-1. 首次啟用先以既有管理員密碼登入。
-2. 進入 `/admin` 後，按右上方「設定 Passkey」。
-3. 以 Windows Hello、Touch ID、Face ID 或安全金鑰完成建立。
-4. 登記成功後，之後登入頁會先準備 Passkey challenge，並在載入時啟動 Conditional UI；帳戶欄位使用 `autocomplete="username webauthn"`，支援的瀏覽器可在該欄位顯示原生 Passkey 選擇。也可直接點「使用 Passkey 登入」。
-5. 裝置不支援、沒有已登記 Passkey、使用者取消或驗證失敗時，可展開「改用密碼登入」。
+1. For the first setup, sign in with the existing administrator password.
+2. Once you are in `/admin`, click 「設定 Passkey」 in the top-right corner.
+3. Complete the ceremony with Windows Hello, Touch ID, Face ID or a security key.
+4. After registration, the sign-in page prepares a Passkey challenge on later visits and enables
+   Conditional UI while it loads; the account field uses `autocomplete="username webauthn"`, so browsers
+   that support it can show the native Passkey picker in that field. You can also click 「使用 Passkey 登入」
+   directly.
+5. When the device is unsupported, no Passkey is registered, the user cancels or verification fails, expand
+   「改用密碼登入」.
 
-Passkey 必須在正式網站 HTTPS origin 註冊。Passkey 驗證只需要 `ADMIN_SESSION_SECRET`；密碼備援另外需要 `ADMIN_PASSWORD`。若不再設定 `ADMIN_PASSWORD`，已登記的 Passkey 仍可登入，但密碼切換入口會隱藏。不要在尚未登記多把 Passkey 前移除密碼備援。
+A Passkey must be registered on the production site's HTTPS origin. Passkey verification only needs
+`ADMIN_SESSION_SECRET`; the password fallback additionally needs `ADMIN_PASSWORD`. If `ADMIN_PASSWORD` is
+no longer set, registered Passkeys can still sign in but the password toggle is hidden. Do not remove the
+password fallback before you have registered more than one Passkey.
 
-預設設定：
+Default settings:
 
 - `ADMIN_WEBAUTHN_RP_ID=www.example.com`
 - `ADMIN_WEBAUTHN_ORIGIN=https://www.example.com`
 
-若將正式 hostname 改為非 www 網域，兩個值都要跟著改，並以同一個 canonical origin 開啟 `/admin`。RP ID 是 hostname，不包含 scheme、port 或 path。
+If you move the production hostname to a non-www domain, change both values and open `/admin` from the
+same canonical origin. The RP ID is a hostname and contains no scheme, port or path.
 
-### 管理員 Session（可撤銷）
+### Admin session (revocable)
 
-密碼與 Passkey 兩種登入方式成功後，都會經由同一個 `src/lib/admin-sessions-core.ts` 建立 D1 session：
+After either sign-in method succeeds, the same `src/lib/admin-sessions-core.ts` creates the D1 session:
 
-- Cookie `__Host-bm-admin` 的值為 `<session_id>.<issued_at>.<hmac>`：`session_id` 是 24 bytes 隨機數（32 個 base64url 字元），HMAC 使用 `ADMIN_SESSION_SECRET` 簽署 `admin.session.<session_id>.<issued_at>`；簽章 scope 與訪客 cookie 不同。
-- D1 `admin_sessions`（`migrations/0008_admin_sessions.sql`）是 session 的唯一權威來源：`expires_at` 為建立後 7 天、`revoked_at` 標記撤銷、`last_seen_at` 記錄最近使用時間（最多每 5 分鐘更新一次）。
-- `requireAdmin()`、`hasValidAdminSession()` 與 `/admin` 頁面守衛都會先驗證 HMAC，再讀 D1 確認 session 存在、未過期、未撤銷。簽章正確但 D1 沒有對應資料時，一律視為未登入。
-- 舊格式（`<issued_at>.<signature>` 兩段）cookie 永遠無效；升級後現有管理員需重新登入一次。
-- `POST /api/admin/logout` 會撤銷目前 session 並清除 cookie（刻意保持冪等：沒有有效 session 時仍會清除 cookie）；新增的 `POST /api/admin/logout-all` 會撤銷所有裝置的 session，`/admin` 右上角有「登出全部」按鈕。
-- 每次成功登入約有 1% 機率順便刪除已過期 session（機會式清理，失敗不影響登入）。
+- The `__Host-bm-admin` cookie value is `<session_id>.<issued_at>.<hmac>`: `session_id` is 24 random bytes
+  (32 base64url characters) and the HMAC signs `admin.session.<session_id>.<issued_at>` with
+  `ADMIN_SESSION_SECRET`; its signing scope differs from the visitor cookie.
+- The D1 `admin_sessions` table (`migrations/0008_admin_sessions.sql`) is the sole authority for sessions:
+  `expires_at` is 7 days after creation, `revoked_at` marks a revocation and `last_seen_at` records the
+  last use (written at most once every 5 minutes).
+- `requireAdmin()`, `hasValidAdminSession()` and the `/admin` page guard all verify the HMAC first and then
+  read D1 to confirm the session exists, has not expired and has not been revoked. A correct signature with
+  no matching D1 row is always treated as signed out.
+- Cookies in the old two-part format (`<issued_at>.<signature>`) are always invalid; after the upgrade
+  existing administrators have to sign in once more.
+- `POST /api/admin/logout` revokes the current session and clears the cookie (deliberately idempotent: it
+  still clears the cookie when there is no valid session); the new `POST /api/admin/logout-all` revokes the
+  sessions on every device, and `/admin` has a 「登出全部」 button in the top-right corner.
+- About 1% of successful sign-ins also delete expired sessions (opportunistic cleanup; a failure does not
+  affect the sign-in).
 
-**D1 是驗證的一部分，必須 fail closed**：D1 binding 缺失、查詢失敗，或 `0008` migration 尚未套用（`no such table: admin_sessions`）時，`/api/admin/*` 回 503，`/admin` 頁面亦回 503，而不是當成未登入。只有「沒有 cookie／簽章錯誤／session 已過期或撤銷」才是 401。因此部署順序必須是「先套用 remote migration，再部署程式碼」。
+**D1 is part of authentication and must fail closed**: when the D1 binding is missing, a query fails, or
+migration `0008` has not been applied (`no such table: admin_sessions`), `/api/admin/*` returns 503 and so
+does the `/admin` page, instead of treating the request as signed out. Only "no cookie / bad signature /
+session expired or revoked" is a 401. The deploy order must therefore be "apply the remote migration first,
+then deploy the code".
 
-### D1 Migration
+### D1 migration
 
-Passkey 公鑰、signature counter、transport 與五分鐘一次性 challenge 存在 D1。私鑰不會離開使用者裝置。
+Passkey public keys, signature counters, transports and the five-minute single-use challenges live in D1.
+Private keys never leave the user's device.
 
-部署前執行：
+Run before deploying:
 
 ```bash
 npx wrangler d1 migrations apply personal-site --remote
 ```
 
-Passkey 使用 `migrations/0006_admin_passkeys.sql`；管理員 session 使用 `migrations/0008_admin_sessions.sql`。同一管理帳戶最多可登記 10 把 Passkey。challenge 驗證時使用單一 DELETE ... RETURNING 操作消耗，無論成功或失敗都不能重播。兩個 migration 都必須在部署對應程式碼前套用到 remote D1。
+Passkeys use `migrations/0006_admin_passkeys.sql`; admin sessions use
+`migrations/0008_admin_sessions.sql`. One administrator account can register at most 10 Passkeys.
+Challenge verification consumes the challenge with a single DELETE ... RETURNING statement, so it cannot be
+replayed whether the attempt succeeds or fails. Both migrations must be applied to the remote D1 before the
+code that depends on them is deployed.
 
-## API 契約
+## API contract
 
-| Route                                 | Method | 用途                                                  | 登入狀態                                                                               |
-| ------------------------------------- | ------ | ----------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| `/api/admin/passkey/login-options`    | POST   | 建立短效登入 challenge、回傳 WebAuthn request options | Access only                                                                            |
-| `/api/admin/passkey/login-verify`     | POST   | 驗證 assertion 並簽發網站 session                     | Access only                                                                            |
-| `/api/admin/passkey/register-options` | POST   | 建立註冊 challenge                                    | Access + admin session                                                                 |
-| `/api/admin/passkey/register-verify`  | POST   | 驗證註冊並儲存公鑰                                    | Access + admin session                                                                 |
-| `/api/admin/passkeys`                 | GET    | 讀取 Passkey 數量和狀態                               | Access + admin session                                                                 |
-| `/api/admin/login`                    | POST   | 備用密碼登入                                          | Access only                                                                            |
-| `/api/admin/logout`                   | POST   | 撤銷目前 session 並清除 cookie                        | Access + 同源檢查（刻意冪等：session 已過期時仍可清除 cookie，因此不要求有效 session） |
-| `/api/admin/logout-all`               | POST   | 撤銷所有裝置的管理員 session                          | Access + 有效 admin session + 同源檢查                                                 |
+| Route                                 | Method | Purpose                                                          | Sign-in state                                                                                                                           |
+| ------------------------------------- | ------ | ---------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `/api/admin/passkey/login-options`    | POST   | Create a short-lived login challenge and return WebAuthn options | Access only                                                                                                                             |
+| `/api/admin/passkey/login-verify`     | POST   | Verify the assertion and issue the site session                  | Access only                                                                                                                             |
+| `/api/admin/passkey/register-options` | POST   | Create a registration challenge                                  | Access + admin session                                                                                                                  |
+| `/api/admin/passkey/register-verify`  | POST   | Verify the registration and store the public key                 | Access + admin session                                                                                                                  |
+| `/api/admin/passkeys`                 | GET    | Read the Passkey count and state                                 | Access + admin session                                                                                                                  |
+| `/api/admin/login`                    | POST   | Fallback password sign-in                                        | Access only                                                                                                                             |
+| `/api/admin/logout`                   | POST   | Revoke the current session and clear the cookie                  | Access + same-origin check (idempotent on purpose: it clears the cookie even when the session expired, so no valid session is required) |
+| `/api/admin/logout-all`               | POST   | Revoke the admin session on every device                         | Access + valid admin session + same-origin check                                                                                        |
 
-所有 POST 均檢查精確 Origin。Passkey challenge cookie 為 HttpOnly、Secure、SameSite=Lax、5 分鐘有效；challenge 本身只在 D1 短暫保存並以原子操作消耗。Challenge 與管理員 session cookie 都使用 `ADMIN_SESSION_SECRET` 做 HMAC 簽章，但簽署內容分別限定用途；Passkey 私鑰則始終留在使用者裝置。
+Every POST checks the exact Origin. The Passkey challenge cookie is HttpOnly, Secure, SameSite=Lax and valid
+for 5 minutes; the challenge itself is stored only briefly in D1 and consumed atomically. Both the challenge
+and the admin session cookie are HMAC-signed with `ADMIN_SESSION_SECRET`, but each signed payload is bound to
+its purpose; the Passkey private key always stays on the user's device.
 
-## 部署前檢查
+## Pre-deploy checklist
 
-- [ ] `ACCESS_TEAM_DOMAIN` 已設定；單一 Access app 使用 `ACCESS_AUD`，兩個獨立 Access apps 則分別設定 `ACCESS_ADMIN_AUD` 與 `ACCESS_API_AUD`。
-- [ ] Access Policy 只允許管理員 Email。
-- [ ] Access Application 覆蓋 `/admin*` 與 `/api/admin*`，並在使用兩個 apps 時分別對應正確 AUD。
-- [ ] `ADMIN_SESSION_SECRET` 已設為 Wrangler secret；若要保留密碼備援，另設定 `ADMIN_PASSWORD`。
-- [ ] `ADMIN_WEBAUTHN_RP_ID` 和 `ADMIN_WEBAUTHN_ORIGIN` 對應實際 canonical domain。
-- [ ] 已在 production D1 執行 migration 0006 與 0008；未套用 0008 時管理員登入會 fail closed 回 503。
-- [ ] 首次以密碼登入並新增至少兩把 Passkey（例如 Windows Hello + 手機同步 Passkey），再測試登出後以 Passkey 重新登入。
-- [ ] 測試「登出全部」後，其他瀏覽器上的管理員 session 即失效（再用舊 cookie 存取應回 401）。
-- [ ] 測試時移除 Access Header 或使用錯誤 AUD，Worker 應回應 403；未設定 Access vars 應回應 503。
+- [ ] `ACCESS_TEAM_DOMAIN` is set; a single Access app uses `ACCESS_AUD`, two separate Access apps set
+      `ACCESS_ADMIN_AUD` and `ACCESS_API_AUD` separately.
+- [ ] The Access Policy allows only the administrator email.
+- [ ] The Access Application covers `/admin*` and `/api/admin*`, and maps each to the correct AUD when two
+      apps are used.
+- [ ] `ADMIN_SESSION_SECRET` is set as a Wrangler secret; set `ADMIN_PASSWORD` as well if you want to keep
+      the password fallback.
+- [ ] `ADMIN_WEBAUTHN_RP_ID` and `ADMIN_WEBAUTHN_ORIGIN` match the real canonical domain.
+- [ ] Migrations 0006 and 0008 have been applied to the production D1; without 0008, admin sign-in fails
+      closed with 503.
+- [ ] You have signed in with the password once and added at least two Passkeys (for example Windows Hello
+      plus a phone-synced Passkey), then tested signing out and back in with a Passkey.
+- [ ] After testing 「登出全部」, admin sessions in other browsers are invalidated (reusing the old cookie
+      returns 401).
+- [ ] In testing, removing the Access header or using the wrong AUD makes the Worker respond 403; leaving
+      the Access vars unset makes it respond 503.
 
-## 套件與 lockfile
+## Package and lockfile
 
-後端使用 `@simplewebauthn/server` `14.0.3` 驗證 WebAuthn 註冊及登入回應。`package-lock.json` 已包含這個依賴（連同 `pinyin-pro`、`to-jyutping`），且是以 Node **22.23.4** / npm **10.9.9** 產生的；CI 使用 `npm ci`，若日後再新增依賴，請用 npm 10 重新產生 lockfile，不要只改 `package.json`。
+The backend uses `@simplewebauthn/server` `14.0.3` to verify WebAuthn registration and sign-in responses.
+`package-lock.json` already contains this dependency (along with `pinyin-pro` and `to-jyutping`) and was
+generated with Node **22.23.4** / npm **10.9.9**; CI runs `npm ci`, so if you add a dependency later,
+regenerate the lockfile with npm 10 instead of only editing `package.json`.

@@ -1,6 +1,6 @@
 # fluentfolio-content
 
-Private content for 我的個人空間. This repository holds writing only; the
+Private content for My Personal Space. This repository holds writing only; the
 site code lives in the separate `fluentfolio` repository.
 
 ## Layout

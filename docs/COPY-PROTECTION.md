@@ -1,101 +1,101 @@
-# 抄竊防護與授權（COPY-PROTECTION）
+# Copy Protection and Licensing (COPY-PROTECTION)
 
-本文件記錄本站處理「內容被複製、轉載或大量抓取」的**分層**做法與操作步驟，供日後維護與交接使用。對外承諾一律以 [`src/pages/terms.astro`](../src/pages/terms.astro)（`/terms`）與各頁面自帶的授權標示為準；本文件不構成額外承諾。
+This document records the **tiered** approach and the operating steps this site uses for "content being copied, reposted, or crawled at scale", for future maintenance and handover. All public commitments are governed by [`src/pages/terms.astro`](../src/pages/terms.astro) (`/terms`) and by the licence notices carried on each page; this document does not create any additional commitment.
 
-這些措施互相補位，但**不構成任何保證**：它們只能提高抄竊的成本、留下可追溯的線索、讓授權與追究有依據。它們不能讓內容「無法複製」或「完全受保護」——任何送到瀏覽器的文字，技術上都可以被保存；任何公開頁面，也都可以被人工重打一遍。實際可用的能力以 Cloudflare 方案與當下後台為準，本文件引用的方案限制皆取自官方文件並標明查閱日期，未能證實的一律標為「待確認」。
+These measures complement one another, but **they do not constitute any guarantee**: they can only raise the cost of copying, leave traceable clues, and give licensing and enforcement a basis. They cannot make content "uncopyable" or "fully protected" — any text delivered to a browser can technically be saved, and any public page can be retyped by hand. The capabilities actually available depend on the Cloudflare plan and on the dashboard as it stands at the time; the plan limits cited in this document are taken from official documentation with the access date noted, and anything that could not be verified is marked "unconfirmed".
 
-分層如下：
+The tiers are:
 
-- **阻嚇**：複製保護（`src/lib/copy-protection.ts`），讓「直接複製貼上」多一點摩擦。
-- **標示**：頁尾的 CC BY-NC-ND 4.0、條款頁的版權與授權說明，讓授權範圍與署名要求有明文依據。
-- **證據**：水印解碼、原始檔與 commit 記錄、發佈時間對照，用於日後比對與投訴。
-- **法律**：授權申請、侵權通知與平台投訴流程。
-- **限流**：Cloudflare WAF 速率限制規則，攔截短時間內的高頻抓取。
+- **Deterrence**: copy protection (`src/lib/copy-protection.ts`), which adds friction to "straight copy-and-paste".
+- **Attribution**: CC BY-NC-ND 4.0 in the footer, and the copyright and licensing statement on the terms page, giving the licence scope and attribution requirements an explicit basis.
+- **Evidence**: watermark decoding, source files and commit records, and publication-time comparisons, for later comparison and complaints.
+- **Legal**: licence requests, infringement notices, and platform complaint procedures.
+- **Rate limiting**: Cloudflare WAF rate limiting rules that block high-frequency crawling within a short window.
 
-## 各層措施總表
+## Summary of measures by tier
 
-| 措施             | 實作位置                                                                                                                                                      | 生效範圍                                                                            | 擋得住什麼／擋不住什麼                                                                                                                                                                                              |
-| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 複製防護＋出處   | `src/lib/copy-protection.ts`、`public/scripts/copy-guard-core.js`、`public/scripts/copy-guard.js`、`src/styles/reading.css`、三個詳情頁的 `data-copy-protect` | 小說、世界觀、詞典詳情頁；可用 frontmatter `copyProtect` 逐篇覆寫；部落格預設不保護 | 擋：滑鼠拖曳選取、右鍵選單、拖放。當選取仍包含保護文字時（例如部分瀏覽器或輔助技術），複製內容會被改寫為最多 120 字＋出處；Chromium 的實際可達性見下一節。不擋：檢視原始碼、閱讀模式、停用 JS、截圖 OCR、人工重打。 |
-| 頁面標示與條款   | `src/pages/terms.astro`、`src/i18n/ui.ts`                                                                                                                     | 全站；`/terms` 的「版權與授權」一節                                                 | 明示授權範圍與引用上限；屬法律與溝通層，不是技術限制。                                                                                                                                                              |
-| 不可見水印       | `src/lib/watermark-core.mjs`、`src/lib/watermark-plugin.mjs`、`astro.config.mjs`、`scripts/decode-watermark.mjs`                                              | 建置時寫入小說、世界觀、詞典正文的輸出 HTML；不改儲存的 Markdown                    | 提供「可能的」來源證據，可證明某一頁的段落曾被複製。不擋：零寬字元可被清除，少數工具可能顯示或朗讀。                                                                                                                |
-| robots.txt 分級  | `src/lib/robots-txt.ts`、`src/pages/robots.txt.ts`、`src/lib/crawl-policy.ts`                                                                                 | 對自願遵守 robots.txt 的爬蟲；搜尋引擎維持可抓                                      | 擋：合規的 AI 爬蟲依規則避開 blocked 路徑。不擋：不遵守的爬蟲、假冒 User-Agent、已抓取的內容。                                                                                                                      |
-| WAF 速率限制     | Cloudflare 後台手動設定（本文件下方範本）                                                                                                                     | 三個文件前綴；需在後台建立規則                                                      | 擋：短時間內同 IP 的高頻抓取。不擋：慢速、分散式、換 IP 的抓取。                                                                                                                                                    |
-| 邊緣 AI 爬蟲政策 | Cloudflare 後台 **Security → Settings → filter Bot traffic → AI Crawler and Agent access policies**                                                           | 全站；需在後台手動設定                                                              | 邊緣封鎖已驗證的 AI 爬蟲與訓練用途；對未驗證或偽裝的流量有限。細節與方案限制見 `docs/CRAWLER-POLICY.md`。                                                                                                           |
+| Measure                       | Implementation location                                                                                                                                                        | Effective scope                                                                                                                              | What it blocks / does not block                                                                                                                                                                                                                                                                                                                                                                                                |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Copy protection + attribution | `src/lib/copy-protection.ts`, `public/scripts/copy-guard-core.js`, `public/scripts/copy-guard.js`, `src/styles/reading.css`, and `data-copy-protect` on the three detail pages | Novel, worldbuilding, and dictionary detail pages; can be overridden per entry via frontmatter `copyProtect`; blog is unprotected by default | Blocks: drag selection with the mouse, the context menu, and drag-and-drop. When a selection still contains protected text (for example in some browsers or assistive technology), the copied content is rewritten to at most 120 characters plus the attribution; actual reachability in Chromium is covered in the next section. Does not block: viewing source, reader mode, disabling JS, screenshot OCR, manual retyping. |
+| Page notices and terms        | `src/pages/terms.astro`, `src/i18n/ui.ts`                                                                                                                                      | Site-wide; the "Copyright and licensing" section of `/terms`                                                                                 | States the licence scope and the quotation limit; this is a legal and communication layer, not a technical restriction.                                                                                                                                                                                                                                                                                                        |
+| Invisible watermark           | `src/lib/watermark-core.mjs`, `src/lib/watermark-plugin.mjs`, `astro.config.mjs`, `scripts/decode-watermark.mjs`                                                               | Written at build time into the output HTML of novel, worldbuilding, and dictionary body text; the stored Markdown is not modified            | Provides "possible" provenance evidence: it can show that a paragraph on a page was copied. Does not block: zero-width characters can be stripped, and a few tools may display or read them aloud.                                                                                                                                                                                                                             |
+| robots.txt tiers              | `src/lib/robots-txt.ts`, `src/pages/robots.txt.ts`, `src/lib/crawl-policy.ts`                                                                                                  | Crawlers that voluntarily honour robots.txt; search engines stay crawlable                                                                   | Blocks: compliant AI crawlers avoid the blocked paths. Does not block: crawlers that do not comply, forged User-Agents, content already fetched.                                                                                                                                                                                                                                                                               |
+| WAF rate limiting             | Manually configured in the Cloudflare dashboard (template below in this document)                                                                                              | The three document prefixes; the rule must be created in the dashboard                                                                       | Blocks: high-frequency crawling from the same IP within a short window. Does not block: slow, distributed, or IP-rotating crawling.                                                                                                                                                                                                                                                                                            |
+| Edge AI crawler policy        | Cloudflare dashboard **Security → Settings → filter Bot traffic → AI Crawler and Agent access policies**                                                                       | Site-wide; must be configured manually in the dashboard                                                                                      | Blocks verified AI crawlers and training use at the edge; of limited effect against unverified or disguised traffic. Details and plan limits are in `docs/CRAWLER-POLICY.md`.                                                                                                                                                                                                                                                  |
 
-## 無障礙與使用體驗取捨
+## Accessibility and UX trade-offs
 
-- 正文沒有被移出 DOM：沒有 `aria-hidden`，沒有改成圖片／canvas／偽元素，沒有攔截 `selectstart`，沒有禁用列印（`reading.css` 沒有 `@media print` 規則），也沒有攔截鍵盤快捷鍵。
-- `user-select: none` 的實際影響：滑鼠無法在保護區內選取文字（這是目的）；螢幕閱讀器、瀏覽器翻譯與閱讀模式仍可讀取 DOM 文字。在 Chromium 實測中，連 `Ctrl+A` 也不會把保護正文納入選取，所以對保護正文而言，主要效果是「選不到」，剪貼簿改寫通常不會觸發。若某些瀏覽器或輔助技術仍產生包含保護文字的選取，`copy` 事件的處理器會把它改寫成 120 字＋出處；這是防禦縱深，不是保證會發生的路徑。
-- 選取完全落在 `[data-copy-allow]`（或表單控制項、`[contenteditable]`）內時，`copy` 處理器不介入，維持原本的複製內容；跨出該範圍的選取則照保護規則改寫。
-- 表單、輸入框、`[contenteditable]` 與 `[data-copy-allow]` 內的文字維持可選取；部落格頁完全不受影響；程式碼區塊的複製按鈕（`markdown-enhance.js`）走自己的剪貼簿路徑，不受複製防護改寫。
-- 沒有新增「已複製摘要」的 toast 或 live region：專案目前沒有可重用的非阻塞提示元件，為避免新增元件與 i18n 鍵，這次只改寫剪貼簿內容。
-- 已知代價：保護區內無法用滑鼠選取去「搜尋選取文字」或自行引用；Chromium 的鍵盤全選也不會帶入保護正文。需要引用時請改用閱讀模式、瀏覽器翻譯，或直接查看原始碼。
-- 尚未實測：螢幕閱讀器實機（NVDA／VoiceOver）、Safari、Firefox。已實測的瀏覽器見下一節。
+- Body text is never removed from the DOM: there is no `aria-hidden`, no conversion to an image / canvas / pseudo-element, no interception of `selectstart`, no disabling of printing (`reading.css` has no `@media print` rule), and no interception of keyboard shortcuts.
+- Actual effect of `user-select: none`: the mouse cannot select text inside a protected area (which is the point); screen readers, browser translation, and reader mode can still read the DOM text. In testing on Chromium, even `Ctrl+A` does not include protected body text in the selection, so for protected body text the main effect is "it cannot be selected", and the clipboard rewrite usually never fires. If some browsers or assistive technology still produce a selection containing protected text, the `copy` event handler rewrites it to 120 characters plus the attribution; that is defence in depth, not a path guaranteed to occur.
+- When the selection falls entirely inside `[data-copy-allow]` (or a form control, or `[contenteditable]`), the `copy` handler does not intervene and the original copied content is kept; a selection that extends beyond that range is rewritten according to the protection rules.
+- Text inside forms, inputs, `[contenteditable]`, and `[data-copy-allow]` stays selectable; blog pages are completely unaffected; the copy button on code blocks (`markdown-enhance.js`) uses its own clipboard path and is not rewritten by copy protection.
+- No "summary copied" toast or live region was added: the project currently has no reusable non-blocking notification component, and to avoid adding a new component and new i18n keys this change only rewrites the clipboard content.
+- Known cost: inside a protected area you cannot use mouse selection to "search for selected text" or to quote the text yourself; Chromium's keyboard select-all does not include protected body text either. When you need to quote, use reader mode, browser translation, or view the source directly.
+- Not yet tested on real hardware: screen readers (NVDA / VoiceOver), Safari, Firefox. The browsers that were tested are listed in the next section.
 
-## 已驗證項目
+## Verified items
 
-| 日期       | 環境                                                        | 操作                                                                                                                  | 結果                                                                                                                                                                                                                                                                       |
-| ---------- | ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 2026-11-08 | Chromium 1228（Playwright，headless）                       | 小說詳情頁：拖曳選取、右鍵、拖放、跨保護區的程式化選取後複製、`Ctrl+A`、部落格對照、程式碼複製按鈕、Swup 換頁、搜尋框 | 拖曳選不到、右鍵與拖放被擋；跨保護區的選取經 `copy` 處理器改寫為 120 字＋出處（209 字元）；`Ctrl+A` 在 Chromium 不納入保護正文（另行以相同 Chromium 重現）；部落格可正常複製、程式碼按鈕正常、Swup 換頁後防護仍在、主控台 0 錯誤。腳本未提交，重跑需自備 Playwright 腳本。 |
-| 2026-11-08 | Node 22.23.4                                                | `node --test tests/copy-guard-core.test.ts`                                                                           | 6/6 通過（截斷、0 字、CJK／換行、空選取、自訂授權、預設標題）。                                                                                                                                                                                                            |
-| 2026-11-08 | Node 22.23.4，`WATERMARK_SECRET=probe-secret`，臨時測試條目 | 建置後檢查輸出 HTML、以 `scripts/decode-watermark.mjs` 解碼                                                           | 3 段正文各插入 1 組 32 位元零寬簽章；解碼回報 `novel/<id>`；未設定 secret 時建置成功並印出略過警告。                                                                                                                                                                       |
+| Date       | Environment                                                           | Operation                                                                                                                                                                                                   | Result                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| ---------- | --------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-11-08 | Chromium 1228 (Playwright, headless)                                  | Novel detail page: drag selection, context menu, drag-and-drop, programmatic selection across the protected area followed by copy, `Ctrl+A`, blog comparison, code copy button, Swup navigation, search box | Drag selection selected nothing; the context menu and drag-and-drop were blocked; a selection crossing the protected area was rewritten by the `copy` handler to 120 characters plus attribution (209 characters); `Ctrl+A` did not include protected body text in Chromium (reproduced separately in the same Chromium build); the blog could be copied normally, the code button worked, protection was still active after Swup navigation, and the console showed 0 errors. The script was not committed; re-running it requires your own Playwright script. |
+| 2026-11-08 | Node 22.23.4                                                          | `node --test tests/copy-guard-core.test.ts`                                                                                                                                                                 | 6/6 passed (truncation, zero characters, CJK / line breaks, empty selection, custom licence, default title).                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| 2026-11-08 | Node 22.23.4, `WATERMARK_SECRET=probe-secret`, temporary test entries | Inspect the output HTML after a build, and decode it with `scripts/decode-watermark.mjs`                                                                                                                    | Each of the 3 body texts had one 32-bit zero-width signature inserted; decoding reported `novel/<id>`; with no secret set the build succeeded and printed a skip warning.                                                                                                                                                                                                                                                                                                                                                                                       |
 
-## 調整 `COPY_MAX_CHARS`
+## Adjusting `COPY_MAX_CHARS`
 
-- 常數在 `src/lib/copy-protection.ts`，目前為 `120`；`0` 代表完全不保留內文，只輸出出處。
-- 三個詳情頁把常數寫進 `data-copy-max`，`/terms` 透過 `data-i18n-args` 帶入同一數字，所以文案與行為不會各說各話。
-- 改動後依序跑 `npm run check`、`npm run check:public`、`npm test`、`npm run build`，並重新跑一次瀏覽器檢查。
-- 這個數字是站內政策參考值，不是法律界線；不要把它寫成「超過即侵權」之類的判斷。
+- The constant lives in `src/lib/copy-protection.ts` and is currently `120`; `0` means no body text is retained at all and only the attribution is output.
+- The three detail pages write the constant into `data-copy-max`, and `/terms` passes the same number through `data-i18n-args`, so the copy and the behaviour cannot disagree.
+- After a change, run `npm run check`, `npm run check:public`, `npm test`, and `npm run build` in that order, and repeat the browser check.
+- This number is an in-house policy reference value, not a legal boundary; do not write it up as "exceeding it is infringement" or anything of that sort.
 
-## 逐篇覆寫 `copyProtect` 與 `crawl`
+## Per-entry overrides of `copyProtect` and `crawl`
 
-- `copyProtect`：布林，選填。未設定時，`novel`／`dictionary`／`world` 預設受保護，`blog` 預設不保護；設 `false` 可讓單篇小說或世界觀頁恢復一般選取。
-- `crawl`：`open`／`paid`／`blocked`，選填。未設定時，`blog` 為 `open`、小說前 3 章（`NOVEL_TRIAL_CHAPTERS`）為 `open`、其後章節與 `dictionary`／`world` 為 `blocked`；`paid` 目前行為與 `blocked` 相同，待 Pay Per Crawl 核准後再切換。
-- 兩個欄位都寫在內容檔的 frontmatter；CMS 端接受布林或 `'true'`／`'false'` 字串，儲存時會原樣保留，但後台表單沒有這兩個欄位（需直接改 frontmatter）。
-- 單篇覆寫不影響 robots.txt 的產生：robots 仍以建置時的內容集合與 `crawl` 值為準。
+- `copyProtect`: boolean, optional. When unset, `novel` / `dictionary` / `world` are protected by default and `blog` is not; setting `false` restores ordinary selection on a single novel or worldbuilding page.
+- `crawl`: `open` / `paid` / `blocked`, optional. When unset, `blog` is `open`, the first 3 novel chapters (`NOVEL_TRIAL_CHAPTERS`) are `open`, and the later chapters plus `dictionary` / `world` are `blocked`; `paid` currently behaves the same as `blocked` and will be switched once Pay Per Crawl is approved.
+- Both fields are written in the content file's frontmatter; the CMS accepts a boolean or the strings `'true'` / `'false'` and preserves them as given on save, but the admin form does not expose either field (you have to edit the frontmatter directly).
+- A per-entry override does not affect robots.txt generation: robots still follows the content collections as built and their `crawl` values.
 
-## 關閉水印
+## Turning off the watermark
 
-- 水印在建置時由 `src/lib/watermark-plugin.mjs` 寫入；沒有 `WATERMARK_SECRET` 時只印一行警告並略過，不會讓建置失敗。
-- 要暫時關閉：從 Cloudflare Workers Builds 的建置變數移除 `WATERMARK_SECRET`，或在本機建置時不設該變數。要永久移除：把 `createWatermarkPlugin()` 從 `astro.config.mjs` 的 `mdastPlugins` 陣列拿掉。
-- 關閉只影響之後的建置；已產生的 HTML 仍帶著舊水印，直到重新建置與部署。儲存的 Markdown、`/search-index.json`、RSS、OG 圖與 sitemap 都沒有被寫入水印。
+- The watermark is written at build time by `src/lib/watermark-plugin.mjs`; without `WATERMARK_SECRET` it prints a single warning and skips, and does not fail the build.
+- To turn it off temporarily: remove `WATERMARK_SECRET` from the Cloudflare Workers Builds build variables, or simply do not set it for a local build. To remove it permanently: take `createWatermarkPlugin()` out of the `mdastPlugins` array in `astro.config.mjs`.
+- Turning it off only affects subsequent builds; HTML that has already been produced keeps the old watermark until it is rebuilt and deployed. The stored Markdown, `/search-index.json`, RSS, OG images, and sitemap never carry the watermark.
 
-## Cloudflare 速率限制規則範本
+## Cloudflare rate limiting rule template
 
-這一節只處理**文件頁**（`/posts/novel/*`、`/world/*`、`/dictionary/*`）的單一 IP 限流。`/posts`、`/about`、`/status` 等 SSR 頁與 `/api/*` 不在本節範圍；API 的限流仍由 `wrangler.jsonc` 的 `ratelimits` binding 在 Worker 內處理。
+This section only covers single-IP rate limiting for **document pages** (`/posts/novel/*`, `/world/*`, `/dictionary/*`). SSR pages such as `/posts`, `/about`, and `/status`, and `/api/*`, are out of scope here; API rate limiting is still handled inside the Worker by the `ratelimits` binding in `wrangler.jsonc`.
 
-### 為何用 WAF 規則，而不是 Worker 的 `ratelimits` binding
+### Why a WAF rule rather than the Worker's `ratelimits` binding
 
-`/posts/novel/<slug>`、`/world/<slug>`、`/dictionary/<slug>` 都是 `export const prerender = true` 的頁面：它們由 adapter 在 `app.render` 之前直接向 `ASSETS` 取檔回傳，`src/middleware.ts` 與頁面路由程式都不會執行（見 [`DEPLOY-CLOUDFLARE.md`](../DEPLOY-CLOUDFLARE.md) §14、§15）。而 Workers 的 Rate Limiting API 只有在 Worker 程式碼實際呼叫 `env.BINDING.limit({ key })` 時才生效（[Cloudflare：Rate Limiting（Workers）](https://developers.cloudflare.com/workers/runtime-apis/bindings/rate-limit/)，查閱 2026-11-08；頁面標示最後更新 2026-10-21）。本專案只有 `/api/*` 會呼叫那三個 binding，文件頁沒有任何呼叫點；要在文件頁加 Worker 端限流，等於要改寫 adapter 入口或加一層 wrapper，而那會把 §15 已解決的 `Range`／`ETag` 問題帶回來。
+`/posts/novel/<slug>`, `/world/<slug>`, and `/dictionary/<slug>` are all pages with `export const prerender = true`: the adapter serves them straight from `ASSETS` before `app.render`, so neither `src/middleware.ts` nor the page route code runs (see [`DEPLOY-CLOUDFLARE.md`](../DEPLOY-CLOUDFLARE.md) §14 and §15). The Workers Rate Limiting API only takes effect when Worker code actually calls `env.BINDING.limit({ key })` ([Cloudflare: Rate Limiting (Workers)](https://developers.cloudflare.com/workers/runtime-apis/bindings/rate-limit/), accessed 2026-11-08; the page states it was last updated 2026-10-21). In this project only `/api/*` calls those three bindings; the document pages have no call site at all. Adding Worker-side rate limiting to the document pages would mean rewriting the adapter entry point or adding a wrapper layer, and that would bring back the `Range` / `ETag` problems already solved in §15.
 
-因此文件頁的限流只能交給 **Cloudflare WAF 的速率限制規則**：它在資產層之前、與 Worker 是否執行無關。
+Rate limiting for the document pages therefore has to be delegated to a **Cloudflare WAF rate limiting rule**: it sits in front of the asset layer and does not depend on whether the Worker runs.
 
-### 方案限制（官方可用性表）
+### Plan limits (official availability table)
 
-以下數字取自 [Cloudflare：Rate limiting rules](https://developers.cloudflare.com/waf/rate-limiting-rules/) 的可用性表（查閱 2026-11-08；頁面標示最後更新 2026-08-25）：
+The numbers below are taken from the availability table in [Cloudflare: Rate limiting rules](https://developers.cloudflare.com/waf/rate-limiting-rules/) (accessed 2026-11-08; the page states it was last updated 2026-08-25):
 
-| 項目           | Free               | Pro                                            | Business                               | Enterprise                                 |
-| -------------- | ------------------ | ---------------------------------------------- | -------------------------------------- | ------------------------------------------ |
-| 規則數量       | 1                  | 2                                              | 5                                      | 100                                        |
-| 可用運算式欄位 | Path、Verified Bot | Host、URI、Path、Full URI、Query、Verified Bot | 上述再加 Method、Source IP、User Agent | 更廣（含 Bot Management、header、body 等） |
-| 計數特徵       | IP                 | IP                                             | IP、IP（支援 NAT）                     | 多種                                       |
-| 計數期間       | 僅 10 秒           | 最長 1 分鐘                                    | 最長 10 分鐘                           | 最長 65,535 秒                             |
-| 緩解時間       | 僅 10 秒           | 最長 1 小時                                    | 最長 1 天                              | 更長                                       |
-| 自訂計數運算式 | 不支援             | 不支援                                         | 支援                                   | 支援                                       |
-| 排除快取資產   | 不支援             | 不支援                                         | 支援                                   | 支援                                       |
-| 自訂封鎖回應   | 不支援             | 支援                                           | 支援                                   | 支援                                       |
+| Item                        | Free               | Pro                                            | Business                                     | Enterprise                                             |
+| --------------------------- | ------------------ | ---------------------------------------------- | -------------------------------------------- | ------------------------------------------------------ |
+| Rule count                  | 1                  | 2                                              | 5                                            | 100                                                    |
+| Available expression fields | Path, Verified Bot | Host, URI, Path, Full URI, Query, Verified Bot | The above plus Method, Source IP, User Agent | Broader (including Bot Management, header, body, etc.) |
+| Counting characteristic     | IP                 | IP                                             | IP, IP (NAT-aware)                           | Several                                                |
+| Counting period             | 10 seconds only    | Up to 1 minute                                 | Up to 10 minutes                             | Up to 65,535 seconds                                   |
+| Mitigation time             | 10 seconds only    | Up to 1 hour                                   | Up to 1 day                                  | Longer                                                 |
+| Custom counting expression  | Not supported      | Not supported                                  | Supported                                    | Supported                                              |
+| Exclude cached assets       | Not supported      | Not supported                                  | Supported                                    | Supported                                              |
+| Custom block response       | Not supported      | Supported                                      | Supported                                    | Supported                                              |
 
-兩個對本站影響最大的限制：
+The two limits that matter most for this site:
 
-- **Free 只有 1 條規則**，所以三個前綴必須用 `or` 併在同一條運算式裡，且三個前綴共用同一個門檻。
-- **Free 的計數期間與緩解時間都固定 10 秒**，只能攔「10 秒內的高頻」，攔不到「每 10 秒抓一次」的慢速爬蟲。
+- **Free has only 1 rule**, so the three prefixes must be combined with `or` into a single expression, and all three then share one threshold.
+- **Free's counting period and mitigation time are both fixed at 10 seconds**, so it can only stop "high frequency within 10 seconds" and not a slow crawler that fetches once every 10 seconds.
 
-另外，Free／Pro 的方案在後台不能排除快取資產（官方參數說明：`requests_to_origin` 的可用性依方案而定，未提供時 Cloudflare 預設對快取資產也套用規則；見 [Rate limiting parameters](https://developers.cloudflare.com/waf/rate-limiting-rules/parameters/)，查閱 2026-11-08，最後更新 2026-11-04）。這對本範本反而有利：命中快取的文件頁請求照樣計數，爬蟲快取與否都逃不掉；而運算式只匹配三個文件前綴，所以 `/_astro/*`、`/og/*`、`/search-index.json` 與其他子資源不會被計數。
+In addition, Free / Pro plans cannot exclude cached assets in the dashboard (official parameter documentation: the availability of `requests_to_origin` depends on the plan, and when it is not offered Cloudflare applies the rule to cached assets too; see [Rate limiting parameters](https://developers.cloudflare.com/waf/rate-limiting-rules/parameters/), accessed 2026-11-08, last updated 2026-11-04). For this template that is actually an advantage: requests for cached document pages are still counted, so a crawler cannot escape by hitting the cache, while the expression only matches the three document prefixes, so `/_astro/*`, `/og/*`, `/search-index.json`, and other subresources are not counted.
 
-### 規則運算式（完整版）
+### Rule expression (complete version)
 
-單一規則、三個前綴，貼進 Security rules → Create rule → Rate limiting rules 的運算式欄位：
+One rule, three prefixes. Paste this into the expression field under Security rules → Create rule → Rate limiting rules:
 
 ```text
 (starts_with(http.request.uri.path, "/posts/novel/") or
@@ -103,108 +103,108 @@
  starts_with(http.request.uri.path, "/dictionary/"))
 ```
 
-- 用 `starts_with()` 函式而非 `wildcard` 運算子：後台會把「starts with」編譯成這個函式，而 `matches` 運算子需要 Business 或以上方案（[Rules language operators](https://developers.cloudflare.com/ruleset-engine/rules-language/operators/)，查閱 2026-11-08，最後更新 2026-10-01）。若你的後台版本提供等價的 `wildcard` 寫法且方案允許，語意相同，但仍以實際後台可存檔的寫法為準。
-- 運算式只匹配文件頁；`http.request.uri.path` 不含查詢字串，所以 `/posts/novel/x?utm=…` 也會匹配，這是預期行為。
-- 計數特徵選 **IP**（`ip.src`）。Free 方案只有這一個選項，不需要也不能設定自訂計數運算式。
+- Uses the `starts_with()` function rather than the `wildcard` operator: the dashboard compiles "starts with" into this function, and the `matches` operator requires Business or above ([Rules language operators](https://developers.cloudflare.com/ruleset-engine/rules-language/operators/), accessed 2026-11-08, last updated 2026-10-01). If your dashboard version offers an equivalent `wildcard` form and your plan allows it, the semantics are the same, but what your dashboard can actually save is what counts.
+- The expression matches document pages only; `http.request.uri.path` does not include the query string, so `/posts/novel/x?utm=…` also matches, which is the intended behaviour.
+- Set the counting characteristic to **IP** (`ip.src`). On the Free plan that is the only option, and a custom counting expression neither needs to be nor can be configured.
 
-### 建議起始門檻與上線流程
+### Suggested starting thresholds and rollout
 
-以下門檻都以「每個 IP、每 10 秒的文件請求數」表示，因為 Free 方案的計數期間固定 10 秒。數字是**起始建議值，未經本站流量實測**（見下方待確認清單），上線後要用 Security Events 與讀者回報修正。
+All thresholds below are expressed as "document requests per IP per 10 seconds", because Free's counting period is fixed at 10 seconds. The numbers are **starting suggestions, not measured against this site's traffic** (see the unconfirmed list below); they need correcting with Security Events and reader reports after going live.
 
-| 階段    | 動作       | 門檻（每 IP／10 秒） | 建議觀察期 | 目的                                                      |
-| ------- | ---------- | -------------------- | ---------- | --------------------------------------------------------- |
-| 1. 基線 | 先不建規則 | —                    | 1 週       | 從 Security Analytics／存取紀錄看正常讀者與已知爬蟲的分佈 |
-| 2. 寬鬆 | Block      | 60                   | 1 週       | 只攔明顯異常；確認沒有正常讀者中招                        |
-| 3. 收窄 | Block      | 30                   | 3–7 天     | 逐步靠近實際需要                                          |
-| 4. 目標 | Block      | 20                   | 持續       | 日常運作值；每次改動後重看 Security Events                |
+| Stage       | Action      | Threshold (per IP / 10s) | Suggested observation period | Purpose                                                                                       |
+| ----------- | ----------- | ------------------------ | ---------------------------- | --------------------------------------------------------------------------------------------- |
+| 1. Baseline | No rule yet | —                        | 1 week                       | See the distribution of normal readers and known crawlers in Security Analytics / access logs |
+| 2. Loose    | Block       | 60                       | 1 week                       | Block only obvious anomalies; confirm no normal reader is caught                              |
+| 3. Narrower | Block       | 30                       | 3–7 days                     | Move gradually toward the real requirement                                                    |
+| 4. Target   | Block       | 20                       | Ongoing                      | Day-to-day operating value; re-check Security Events after every change                       |
 
-注意「Log 再 Block」在 Free／Pro 上做不到：規則動作裡的 **Log 只提供 Enterprise 方案**（[Rules language actions](https://developers.cloudflare.com/ruleset-engine/rules-language/actions/)，查閱 2026-11-08，最後更新 2026-04-23）。替代做法是：
+Note that "Log first, then Block" is not possible on Free / Pro: the **Log action is Enterprise only** ([Rules language actions](https://developers.cloudflare.com/ruleset-engine/rules-language/actions/), accessed 2026-11-08, last updated 2026-04-23). The alternative is:
 
-1. 第一週先完全不建規則，只用 Security Analytics 建立基線。
-2. 第二週用「寬鬆門檻 + Block」上線，把它當成事實上的觀察階段：Block 在速率限制規則中回 HTTP 429，被攔的請求會出現在 Security Events，可以逐筆回看是否符合預期。
-3. 確認沒有誤傷後才收窄門檻；每次只改一個階段，保留至少 3 天觀察期。
-4. 若某段時間誤傷明顯（例如發佈新章後的讀者潮），可暫時把動作改為 Managed Challenge 或把門檻調回上一階段，而不是直接停用規則。
+1. For the first week, create no rule at all and use Security Analytics only to establish a baseline.
+2. In the second week, go live with "loose threshold + Block" and treat it as the de facto observation phase: a Block in a rate limiting rule returns HTTP 429, and the blocked requests show up in Security Events, where each one can be reviewed for whether it was expected.
+3. Narrow the threshold only after confirming there is no collateral damage; change one stage at a time and keep at least 3 days of observation between changes.
+4. If collateral damage is obvious for a while (for example the reader surge after a new chapter is published), temporarily switch the action to Managed Challenge or move the threshold back one stage, rather than disabling the rule outright.
 
-### 不傷搜尋引擎與快速翻頁讀者
+### Not hurting search engines or fast-browsing readers
 
-- **搜尋引擎**：Cloudflare 官方提醒，對 Verified Bots 套用速率限制**可能影響 SEO**（同上的 Rate limiting rules 頁面；另見 [Improve SEO](https://developers.cloudflare.com/fundamentals/performance/improve-seo/)，查閱 2026-11-08，最後更新 2026-04-20：「Rate limiting rules are allowing Verified Bots」）。若方案與欄位允許，應在運算式加上排除條件；但 Free 方案是否接受 `cf.verified_bot_category`（或後台「Verified Bot」欄位對應的底層名稱）**尚待確認**，在證實前不要把未經驗證的欄位寫進正式規則——存檔失敗還算好，默默不匹配更難發現。實務上的替代保護是：門檻不要低於正常爬蟲的抓取節奏，上線後在 Search Console 觀察抓取統計；若發現 crawler 經常收到 429，就把門檻調回上一階段。
-- **快速翻頁讀者**：本站啟用 Swup 的 `preload: { hover: true, visible: true }`（`astro.config.mjs`），滑過或看見章節連結就會預取，快速翻頁時同一個 IP 可能在 10 秒內產生數個文件請求。這是把目標門檻放在 20 而不是 5 的主要原因；若日後關閉 preload，可以再收窄。NAT／校園網路／手機電信網路後方多人共用同一出口 IP，也會放大誤傷風險——這也是 Free 方案（只有 IP 計數）最大的弱點。
-- **不要**把 `/`、`/_astro/*`、`/og/*`、`/search-index.json` 納入運算式；一次頁面瀏覽會抓數十個子資源，納入後門檻會變得沒有意義，且整站都可能被誤鎖。
+- **Search engines**: Cloudflare officially warns that applying rate limiting to Verified Bots **may affect SEO** (the Rate limiting rules page above; see also [Improve SEO](https://developers.cloudflare.com/fundamentals/performance/improve-seo/), accessed 2026-11-08, last updated 2026-04-20: "Rate limiting rules are allowing Verified Bots"). If your plan and the available fields allow it, add an exclusion condition to the expression; but whether the Free plan accepts `cf.verified_bot_category` (or the underlying name behind the dashboard's "Verified Bot" field) **is still unconfirmed**, and until it is proven, do not put an unverified field into a live rule — a failed save is the good outcome, a silent non-match is much harder to notice. The practical alternative protection is: keep the threshold no lower than a normal crawler's fetch cadence, and watch crawling statistics in Search Console after going live; if the crawler frequently receives 429, move the threshold back one stage.
+- **Fast-browsing readers**: this site enables Swup's `preload: { hover: true, visible: true }` (`astro.config.mjs`), so chapter links are prefetched on hover or when they become visible, and during fast page-turning a single IP may generate several document requests within 10 seconds. This is the main reason the target threshold is set at 20 rather than 5; if preload is turned off later, the threshold can be narrowed again. Several people behind NAT / a campus network / a mobile carrier network sharing one egress IP also amplifies the risk of collateral damage — and that is the biggest weakness of the Free plan (IP counting only).
+- **Do not** include `/`, `/_astro/*`, `/og/*`, or `/search-index.json` in the expression; a single page view fetches dozens of subresources, which would make the threshold meaningless and could lock out the whole site by mistake.
 
-### 已知限制與陷阱
+### Known limits and pitfalls
 
-- **計數不精確**：官方原文說明速率限制「不是設計來讓精確數量的請求到達 origin」，計數器更新可能延遲數秒，超過門檻的請求仍可能在封鎖生效前到達（Rate limiting rules 頁面，查閱 2026-11-08）。
-- **各數據中心各自計數**：Cloudflare 不提供跨整個網路的全域計數器，每個資料中心維護自己的計數（[Request rate](https://developers.cloudflare.com/waf/rate-limiting-rules/request-rate/)，查閱 2026-11-08，最後更新 2026-04-16）。分散式爬蟲（多 IP、多地區）幾乎不會被單一規則擋住。
-- **路徑正規化差異**：origin 與 Cloudflare 對路徑的正規化／解碼可能不同，改寫過的路徑有機會繞過 path 規則；上線前先確認 zone 的 URL normalization 設定（[Best practices](https://developers.cloudflare.com/waf/rate-limiting-rules/best-practices/)，查閱 2026-11-08，最後更新 2026-10-23）。
-- **429 的成本很低**：Free 方案的緩解時間固定 10 秒，換個 IP 或等 10 秒就過去；本節的規則只能降低「無腦高速抓取」的效率，對有資源的抄襲者幾乎沒有嚇阻力。
-- **只保護 HTTP 路徑**：已被下載、截圖或人工重打的內容不受任何限流影響。
+- **Counting is not exact**: the official wording notes that rate limiting "is not designed for the precise number of requests to reach origin", that counter updates may lag by several seconds, and that requests over the threshold may still arrive before the block takes effect (Rate limiting rules page, accessed 2026-11-08).
+- **Each data centre counts separately**: Cloudflare does not provide a global counter across its entire network; every data centre maintains its own count ([Request rate](https://developers.cloudflare.com/waf/rate-limiting-rules/request-rate/), accessed 2026-11-08, last updated 2026-04-16). A distributed crawler (many IPs, many regions) is almost never stopped by a single rule.
+- **Path normalisation differences**: origin and Cloudflare may normalise / decode paths differently, so a rewritten path may bypass a path rule; before going live, check the zone's URL normalization setting ([Best practices](https://developers.cloudflare.com/waf/rate-limiting-rules/best-practices/), accessed 2026-11-08, last updated 2026-10-23).
+- **A 429 is cheap**: Free's mitigation time is fixed at 10 seconds, so switching IP or waiting 10 seconds gets past it; the rule in this section only reduces the efficiency of "mindless high-speed scraping" and barely deters a copier with resources.
+- **Only HTTP paths are protected**: content that has already been downloaded, screenshotted, or retyped by hand is unaffected by any rate limiting.
 
-### 待確認
+### Unconfirmed
 
-1. Free 方案是否接受 `cf.verified_bot_category`（或後台「Verified Bot」欄位對應的底層運算式名稱）用於速率限制規則——官方可用性表只寫「Verified Bot」，API 欄位名未經證實。
-2. 後台選單與欄位名稱（「Security rules」→「Rate limiting rules」、計數特徵與期間的呈現方式）可能隨版本不同，以實際後台為準。
-3. 上表的 60／30／20 門檻是起始建議，尚未用本站流量驗證；需要至少一週基線資料才能定案。
-4. 若日後要對 `/_astro/*` 或媒體檔限流，需先確認不會破壞 Safari 的 `Range` 行為與快取（見 `DEPLOY-CLOUDFLARE.md` §15）。
+1. Whether the Free plan accepts `cf.verified_bot_category` (or the underlying expression name behind the dashboard's "Verified Bot" field) in rate limiting rules — the official availability table only says "Verified Bot", and the API field name has not been proven.
+2. Dashboard menu and field names ("Security rules" → "Rate limiting rules", and how the counting characteristic and period are presented) may differ between versions; whatever the actual dashboard shows is authoritative.
+3. The 60 / 30 / 20 thresholds in the table above are starting suggestions and have not been validated against this site's traffic; at least a week of baseline data is needed before settling them.
+4. If `/_astro/*` or media files are to be rate limited in future, first confirm that it will not break Safari's `Range` behaviour and caching (see `DEPLOY-CLOUDFLARE.md` §15).
 
-## 抄竊發現後的處理流程
+## Handling a discovered copy
 
-以下只是操作步驟，不是法律意見。實際個案（尤其是跨境平台、合理使用／公平處理、平台責任）應諮詢熟悉香港《版權條例》（第 528 章）的專業人士。
+The following are operating steps only, not legal advice. Individual cases (especially cross-border platforms, fair use / fair dealing, and platform liability) should be discussed with a professional familiar with Hong Kong's Copyright Ordinance (Cap. 528).
 
-### 1. 先判斷性質，再決定要不要動作
+### 1. Classify it first, then decide whether to act
 
-先分清三種情況：（a）**有授權的轉載**——頁尾或該頁明文標示 CC BY-NC-ND 4.0，或曾個別授權；（b）**合理引用**——短引用、有署名、用於評論或介紹，落在本站 `/terms` 說明的容許範圍內；（c）**未授權的全文／大段轉載、改作或商業使用**。只有 (c) 才進入以下流程；(a)(b) 不需要處理，也不要公開指控。
+Start by distinguishing three situations: (a) **licensed reproduction** — the footer or that page explicitly states CC BY-NC-ND 4.0, or a licence was granted individually; (b) **fair quotation** — a short quote, attributed, used for review or introduction, within the allowance described on this site's `/terms`; (c) **unauthorised full-text or large-portion reproduction, adaptation, or commercial use**. Only (c) goes through the process below; (a) and (b) need no action and must not be publicly accused.
 
-### 2. 先保全證據，再通知對方
+### 2. Preserve the evidence before notifying the other party
 
-通知一旦送出，對方可能立刻修改或刪除內容，所以證據要在最前面保存：
+Once a notice is sent, the other party may edit or delete the content immediately, so the evidence has to be saved first:
 
-1. 對侵權頁面做**完整頁面存檔**：瀏覽器「另存頁面」保存原始 HTML 與資源、整頁截圖（含網址列與系統時間）、輸出 PDF；必要時用 Internet Archive 的 Save Page Now 留一份第三方快照。
-2. 記錄**雙方發佈時間**：對方頁面的發佈／更新時間、你自己的 commit 時間（`git log --follow -- <檔案>`）與首次上線時間。
-3. 保存**比對材料**：逐段並列的文字對照、相同錯字／標點／自訂名詞（例如本站在用的世界觀專名）、相同排版特徵。計算重疊篇幅，區分「相同段落」與「相同主題」。
-4. 為所有檔案計算雜湊（`sha256sum`）並與截圖一起存放，日後可證明檔案未被替換。
+1. Take a **complete page archive** of the infringing page: "Save page as" in the browser to keep the original HTML and resources, a full-page screenshot (including the address bar and system time), and a PDF export; where necessary, use the Internet Archive's Save Page Now to keep a third-party snapshot.
+2. Record **the publication times of both sides**: the other page's publication / update time, your own commit time (`git log --follow -- <file>`), and when you first went live.
+3. Keep **comparison material**: a paragraph-by-paragraph side-by-side text comparison, identical typos / punctuation / coined terms (for example the worldbuilding proper nouns this site uses), and identical layout quirks. Measure the overlapping extent, and distinguish "identical paragraphs" from "identical topic".
+4. Compute a hash for every file (`sha256sum`) and store it together with the screenshots, so that later you can show the files were not swapped.
 
-### 3. 解碼水印（若內容含本站水印）
+### 3. Decode the watermark (if the content carries this site's watermark)
 
-解碼工具是 `scripts/decode-watermark.mjs`，需要與建置時相同的 `WATERMARK_SECRET`。它會走訪 `src/content/{novel,dictionary,world}` 的所有條目，重算 HMAC 簽章並比對文字中的零寬字元序列；只含其中一段的局部複製也能比對出來。
+The decoding tool is `scripts/decode-watermark.mjs` and it needs the same `WATERMARK_SECRET` used at build time. It walks every entry under `src/content/{novel,dictionary,world}`, recomputes the HMAC signature, and compares it against the zero-width character sequences in the text; a partial copy that contains only one of the passages can still be matched.
 
 ```bash
-# 先確認 secret 與 Workers Builds 建置變數一致
-export WATERMARK_SECRET='<建置時使用的值>'
+# First confirm the secret matches the Workers Builds build variable
+export WATERMARK_SECRET='<value used at build time>'
 node scripts/decode-watermark.mjs < suspect.txt
 ```
 
-Windows 的 PowerShell 管線在把文字送進原生程式時可能丟失 U+200B／U+200C；請先把可疑文字存成 UTF-8 檔，再用 `cmd /c "node scripts/decode-watermark.mjs < suspect.txt"` 或直接以檔案重定向執行。
+Windows PowerShell pipelines can lose U+200B / U+200C when piping text into a native program; save the suspect text as a UTF-8 file first, then run `cmd /c "node scripts/decode-watermark.mjs < suspect.txt"` or redirect from the file directly.
 
-1. 從侵權頁面取得原始文字或圖片（優先原始 HTML／原圖，不要只留截圖；截圖與圖片壓縮會丟失零寬字元）。
-2. 執行上述指令，輸出會列出符合的 `collection/id`（例如 `novel/chapter-1`）或「未找到」。把輸出與第 2 步的證據放在同一目錄。
-3. 若沒有符合項，改用替代證據：內容中的唯一字串、自訂專名、錯字、排版特徵，以及「對方頁面出現本站才有的內部連結或圖片路徑」。這類替代證據要在紀錄中標明是間接比對，不要寫成水印已解碼。
-4. 水印只是「可能的」證據：零寬字元可能被對方清除或工具改寫，單靠水印不足以證明整篇來源；應與 commit 時間、發佈時間、其他文字特徵一起使用。
+1. Obtain the original text or image from the infringing page (prefer the original HTML / original image, not just a screenshot; screenshots and image compression lose zero-width characters).
+2. Run the command above; the output lists matching `collection/id` values (for example `novel/chapter-1`) or "not found". Keep the output in the same directory as the evidence from step 2.
+3. If nothing matches, fall back to alternative evidence: unique strings in the content, coined proper nouns, typos, layout quirks, and "internal links or image paths that only exist on this site appearing on the other page". Mark such alternative evidence in the record as an indirect comparison; do not write it up as "the watermark was decoded".
+4. The watermark is only "possible" evidence: zero-width characters may have been stripped or rewritten by the other party or by their tools, and a watermark alone is not enough to prove the provenance of a whole article; use it together with commit times, publication times, and other textual features.
 
-### 4. 通知平台與主機
+### 4. Notify the platform and the host
 
-1. **先直接聯絡**（若能找到可用的聯絡方式）：簡短說明涉及頁面、要求移除或補上署名與授權，給一個合理期限。保留寄件備份。
-2. **平台投訴**：依各平台公告的著作權／侵權投訴流程提交（GitHub、Medium、方格子、Facebook、Telegram 頻道等各有不同表格與要求），附上第 2 步的證據、雙方網址、你的權利說明，以及「該內容未採 CC 授權或超出授權範圍」的說明。不要捏造授權狀態。
-3. **主機／CDN 投訴**：若對方是自架網站，查 WHOIS 或網站頁尾找到主機商，向其 abuse 信箱提交同樣材料；投訴信要說明具體 URL 與侵權段落，不要只寫「他抄我」。
-4. **本地途徑**：香港的個案可考慮先諮詢律師，了解是否適合向香港海關（負責版權刑事執法）或相關機構查詢；是否構成侵權、是否值得報案，屬專業判斷。
+1. **Contact them directly first** (if a usable contact address can be found): briefly describe the pages involved, ask for removal or for attribution and licensing to be added, and give a reasonable deadline. Keep a copy of what you sent.
+2. **Platform complaints**: submit through each platform's published copyright / infringement complaint process (GitHub, Medium, Vocus, Facebook, Telegram channels, and so on each have different forms and requirements), attaching the evidence from step 2, both URLs, a statement of your rights, and a statement that "the content is not under a CC licence or exceeds the licence scope". Do not misrepresent the licensing status.
+3. **Host / CDN complaints**: if the other party runs their own site, find the host through WHOIS or the site footer and send the same material to its abuse address; the complaint must name the specific URLs and the infringing passages, not just "they copied me".
+4. **Local routes**: for Hong Kong cases, consider consulting a lawyer first about whether it is appropriate to approach Hong Kong Customs (which handles criminal copyright enforcement) or a relevant body; whether infringement has occurred and whether a report is worthwhile are professional judgements.
 
-### 5. 記錄與後續
+### 5. Record and follow up
 
-1. 建一份事件紀錄：發現日期、來源 URL、證據檔案路徑、通知日期與對象、回覆、處理結果（已下架／已補署名／無回應）。放在不公開的位置。
-2. 同一來源重複出現時，累積紀錄再處理；不要在新聞稿或社交平台公開指名未經證實的抄竊者，避免誹謗與隱私風險。
-3. 事件結束後回頭檢查防護是否要調整：限流門檻、`copyProtect`、水印參數、robots／`crawl` 層級。調整後更新本文件與 `DEPLOY-CLOUDFLARE.md` 的相關章節。
+1. Keep an incident record: discovery date, source URLs, evidence file paths, notification dates and recipients, replies, and outcome (taken down / attribution added / no response). Store it somewhere private.
+2. When the same source recurs, accumulate the record before acting again; do not publicly name an unproven copier in a press release or on social media, to avoid defamation and privacy risks.
+3. After the incident, review whether the defences need adjusting: rate limiting thresholds, `copyProtect`, watermark parameters, and the robots / `crawl` tiers. After adjusting them, update this document and the relevant sections of `DEPLOY-CLOUDFLARE.md`.
 
-### 建議諮詢專業意見
+### Consult professional advice
 
-本文件是站內的操作筆記，不是法律意見，也不構成對任何個案勝負的判斷。涉及授權範圍、合理使用／公平處理、跨境管轄、平台責任或索償金額時，建議諮詢專業意見（律師或相關機構），再決定是否採取法律行動。
+This document is an in-house set of operating notes, not legal advice, and it does not constitute a judgement on the outcome of any individual case. Where licence scope, fair use / fair dealing, cross-border jurisdiction, platform liability, or the amount of a claim is involved, seek professional advice (a lawyer or a relevant body) before deciding whether to take legal action.
 
-## 參考資料
+## References
 
-- [Cloudflare：Rate limiting rules](https://developers.cloudflare.com/waf/rate-limiting-rules/)（查閱 2026-11-08；最後更新 2026-08-25）
-- [Cloudflare：Rate limiting parameters](https://developers.cloudflare.com/waf/rate-limiting-rules/parameters/)（查閱 2026-11-08；最後更新 2026-11-04）
-- [Cloudflare：Request rate](https://developers.cloudflare.com/waf/rate-limiting-rules/request-rate/)（查閱 2026-11-08；最後更新 2026-04-16）
-- [Cloudflare：Rate limiting best practices](https://developers.cloudflare.com/waf/rate-limiting-rules/best-practices/)（查閱 2026-11-08；最後更新 2026-10-23）
-- [Cloudflare：Create a rate limiting rule in the dashboard](https://developers.cloudflare.com/waf/rate-limiting-rules/create-zone-dashboard/)（查閱 2026-11-08；最後更新 2026-08-03）
-- [Cloudflare：Rules language actions](https://developers.cloudflare.com/ruleset-engine/rules-language/actions/)（查閱 2026-11-08；最後更新 2026-04-23）
-- [Cloudflare：Rules language operators](https://developers.cloudflare.com/ruleset-engine/rules-language/operators/)（查閱 2026-11-08；最後更新 2026-10-01）
-- [Cloudflare：Rate Limiting（Workers binding）](https://developers.cloudflare.com/workers/runtime-apis/bindings/rate-limit/)（查閱 2026-11-08；最後更新 2026-10-21）
-- [Cloudflare：Improve SEO](https://developers.cloudflare.com/fundamentals/performance/improve-seo/)（查閱 2026-11-08；最後更新 2026-04-20）
+- [Cloudflare: Rate limiting rules](https://developers.cloudflare.com/waf/rate-limiting-rules/) (accessed 2026-11-08; last updated 2026-08-25)
+- [Cloudflare: Rate limiting parameters](https://developers.cloudflare.com/waf/rate-limiting-rules/parameters/) (accessed 2026-11-08; last updated 2026-11-04)
+- [Cloudflare: Request rate](https://developers.cloudflare.com/waf/rate-limiting-rules/request-rate/) (accessed 2026-11-08; last updated 2026-04-16)
+- [Cloudflare: Rate limiting best practices](https://developers.cloudflare.com/waf/rate-limiting-rules/best-practices/) (accessed 2026-11-08; last updated 2026-10-23)
+- [Cloudflare: Create a rate limiting rule in the dashboard](https://developers.cloudflare.com/waf/rate-limiting-rules/create-zone-dashboard/) (accessed 2026-11-08; last updated 2026-08-03)
+- [Cloudflare: Rules language actions](https://developers.cloudflare.com/ruleset-engine/rules-language/actions/) (accessed 2026-11-08; last updated 2026-04-23)
+- [Cloudflare: Rules language operators](https://developers.cloudflare.com/ruleset-engine/rules-language/operators/) (accessed 2026-11-08; last updated 2026-10-01)
+- [Cloudflare: Rate Limiting (Workers binding)](https://developers.cloudflare.com/workers/runtime-apis/bindings/rate-limit/) (accessed 2026-11-08; last updated 2026-10-21)
+- [Cloudflare: Improve SEO](https://developers.cloudflare.com/fundamentals/performance/improve-seo/) (accessed 2026-11-08; last updated 2026-04-20)

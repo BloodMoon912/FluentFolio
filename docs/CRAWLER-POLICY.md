@@ -1,155 +1,155 @@
-# 爬蟲政策與邊緣封鎖（Crawler Policy）
+# Crawler Policy and Edge Blocking (Crawler Policy)
 
-本文件說明 `fluentfolio` 的爬蟲政策：哪些內容公開、哪些只准搜尋引擎以外的人類讀者、`robots.txt` 由哪段程式產生，以及「真正擋住 AI 爬蟲」為何一定要在 Cloudflare 邊緣另設規則。
+This document explains the crawler policy of `fluentfolio`: which content is public, which is intended only for human readers rather than search engines, which part of the code generates `robots.txt`, and why "actually blocking AI crawlers" necessarily requires separate rules at the Cloudflare edge.
 
-> 事實查核日期：2026-11-08。文中每一項非顯而易見的 Cloudflare 行為都附官方連結；未能從官方文件確認的項目一律標示「待確認」，不臆測。
+> Fact-check date: 2026-11-08. Every non-obvious Cloudflare behaviour in this document comes with an official link; anything that could not be confirmed from the official documentation is marked "unconfirmed" rather than guessed.
 
-## 目錄
+## Contents
 
-- [1. 政策分層](#1-政策分層)
-- [2. 程式實際做了什麼](#2-程式實際做了什麼)
-- [3. 為何只有 robots.txt 不夠](#3-為何只有-robots-txt-不夠)
-- [4. 必須在 Cloudflare 儀表板人手設定](#4-必須在-cloudflare-儀表板人手設定)
-- [5. WAF 自訂規則範本](#5-waf-自訂規則範本)
-- [6. 驗證方式與 curl](#6-驗證方式與-curl)
-- [7. 收費（Pay Per Crawl）現況](#7-收費pay-per-crawl現況)
-- [8. 待向 Cloudflare 確認](#8-待向-cloudflare-確認)
-- [9. 參考資料](#9-參考資料)
+- [1. Policy tiers](#1-policy-tiers)
+- [2. What the code actually does](#2-what-the-code-actually-does)
+- [3. Why robots.txt alone is not enough](#3-why-robotstxt-alone-is-not-enough)
+- [4. What must be configured by hand in the Cloudflare dashboard](#4-what-must-be-configured-by-hand-in-the-cloudflare-dashboard)
+- [5. WAF custom rule template](#5-waf-custom-rule-template)
+- [6. How to verify, and curl](#6-how-to-verify-and-curl)
+- [7. Pay Per Crawl status](#7-pay-per-crawl-status)
+- [8. To be confirmed with Cloudflare](#8-to-be-confirmed-with-cloudflare)
+- [9. References](#9-references)
 
-## 1. 政策分層
+## 1. Policy tiers
 
-分層的單一真相是 [`src/lib/crawl-policy.ts`](../src/lib/crawl-policy.ts)；`robots.txt`、內容 schema 與測試都從它推導。
+The single source of truth for the tiers is [`src/lib/crawl-policy.ts`](../src/lib/crawl-policy.ts); `robots.txt`, the content schema, and the tests are all derived from it.
 
-| 分層      | 內容                                                                              | `robots.txt` 現況                           | 目標執行方式                          |
-| --------- | --------------------------------------------------------------------------------- | ------------------------------------------- | ------------------------------------- |
-| `open`    | 首頁、`/posts`、部落格文章、`/about`、`/privacy`、`/terms`、小說第 1–3 章（試閱） | `Allow: /`；小說試閱另加精確 `Allow`        | 不封鎖                                |
-| `paid`    | 保留給 Pay Per Crawl 的內容                                                       | 目前**與 `blocked` 完全相同**（`Disallow`） | 計劃核准後改為收費／HTTP 402          |
-| `blocked` | `/world/*`、`/dictionary/*`、小說第 4 章起                                        | AI 群組 `Disallow` 前綴                     | Cloudflare WAF（必要時）＋ robots.txt |
+| Tier      | Content                                                                                       | Current `robots.txt` state                                    | Intended enforcement                                   |
+| --------- | --------------------------------------------------------------------------------------------- | ------------------------------------------------------------- | ------------------------------------------------------ |
+| `open`    | Home page, `/posts`, blog posts, `/about`, `/privacy`, `/terms`, novel chapters 1–3 (preview) | `Allow: /`; the novel preview also gets exact `Allow` entries | Not blocked                                            |
+| `paid`    | Content reserved for Pay Per Crawl                                                            | Currently **identical to `blocked`** (`Disallow`)             | Becomes paid / HTTP 402 once the programme is approved |
+| `blocked` | `/world/*`, `/dictionary/*`, novel chapter 4 onward                                           | `Disallow` prefixes for the AI group                          | Cloudflare WAF (where necessary) + robots.txt          |
 
-`paid` 與 `blocked` 今天沒有任何行為差異。`src/lib/robots-txt.ts` 的註解已標明切換點；Pay Per Crawl 目前仍是封閉測試（見第 7 節），在計劃核准前不應假裝收費已生效。
+`paid` and `blocked` have no behavioural difference today. The comment in `src/lib/robots-txt.ts` already marks the switch point; Pay Per Crawl is still in closed beta (see §7), and until the programme is approved we should not pretend that charging is already in effect.
 
-### 1.1 最長匹配（longest match）
+### 1.1 Longest match
 
-`robots.txt` 的 `Allow`／`Disallow` 不是「先寫先贏」，而是**最長匹配路徑優先**；長度相同時 `Allow` 優先。因此：
+`Allow` / `Disallow` in `robots.txt` are not "first one written wins" — the **longest matching path** takes priority, and when two are the same length `Allow` wins. Therefore:
 
 ```text
-Disallow: /posts/novel/            # 小說全部先擋
-Allow: /posts/novel/chapter-1/     # 試閱章節較長，勝出
+Disallow: /posts/novel/            # block the whole novel first
+Allow: /posts/novel/chapter-1/     # the preview chapter is longer, so it wins
 ```
 
-尾斜線是必要的：若寫成 `/posts/novel/chapter-1`，它同時是 `/posts/novel/chapter-10` 的前綴，會把第十章也放行。加上 `/` 之後，這條 `Allow` 只匹配該章自己的網址前綴；產生器就是這樣輸出的。
+The trailing slash is essential: written as `/posts/novel/chapter-1`, it would also be a prefix of `/posts/novel/chapter-10` and would let chapter ten through as well. With the trailing `/`, this `Allow` matches only that chapter's own URL prefix; that is exactly how the generator emits it.
 
-這也是為什麼產生器一定要把試閱章節的完整路徑逐條寫出來，而不能只寫 `Allow: /posts/novel/chapter-1$` 之類的正規表達式——`robots.txt` 的 `$` 與 `*` 支援度不一，精確路徑最可靠。
+This is also why the generator must list the full path of each preview chapter individually instead of writing a regular expression such as `Allow: /posts/novel/chapter-1$` — support for `$` and `*` in `robots.txt` varies, and exact paths are the most reliable.
 
-## 2. 程式實際做了什麼
+## 2. What the code actually does
 
-- [`src/pages/robots.txt.ts`](../src/pages/robots.txt.ts)：`prerender = true`，建置時以 `getCollection` 讀取 `blog`／`novel`／`dictionary`／`world` 四個集合，映射成 `CrawlPolicyEntry` 後交給純函式產生器。回應型別 `text/plain; charset=utf-8`。
-- [`src/lib/robots-txt.ts`](../src/lib/robots-txt.ts)：純函式 `buildRobotsTxt(entries)`。不匯入 Astro、不匯入 Cloudflare，所以 `node --test` 可以直接驗證輸出。
-- `public/robots.txt` 已刪除。舊檔與新路由同時存在會產生兩個真相；現在唯一來源是建置產物。
-- 草稿（`draft: true`）不會進入任何 `Allow`。`paid`／`blocked` 的內容會依 `AI_RESTRICTED_PREFIXES` 或其實際路徑被 `Disallow`。
-- `User-agent: *` 群組維持 `Allow: /`、`Disallow: /admin`，並加上 Cloudflare 的 Content Signals：`search=yes, ai-train=no, ai-input=no`。
-- 搜尋引擎（Googlebot、Bingbot、DuckDuckBot、Baiduspider、YandexBot 等）**永遠不會**出現在任何 `Disallow` 群組；`tests/robots.test.ts` 有對應斷言。
+- [`src/pages/robots.txt.ts`](../src/pages/robots.txt.ts): `prerender = true`; at build time it reads the `blog` / `novel` / `dictionary` / `world` collections with `getCollection`, maps them to `CrawlPolicyEntry`, and hands them to a pure-function generator. The response type is `text/plain; charset=utf-8`.
+- [`src/lib/robots-txt.ts`](../src/lib/robots-txt.ts): the pure function `buildRobotsTxt(entries)`. It imports neither Astro nor Cloudflare, so `node --test` can validate the output directly.
+- `public/robots.txt` has been deleted. An old file and the new route existing side by side would create two truths; the build output is now the only source.
+- Drafts (`draft: true`) never appear in any `Allow`. Content marked `paid` / `blocked` is `Disallow`ed either through `AI_RESTRICTED_PREFIXES` or through its actual path.
+- The `User-agent: *` group keeps `Allow: /` and `Disallow: /admin`, and adds Cloudflare's Content Signals: `search=yes, ai-train=no, ai-input=no`.
+- Search engines (Googlebot, Bingbot, DuckDuckBot, Baiduspider, YandexBot, and others) **never** appear in any `Disallow` group; `tests/robots.test.ts` asserts exactly this.
 
-### 2.1 robots.txt 不是存取控制
+### 2.1 robots.txt is not access control
 
-`robots.txt` 是自願性標準（RFC 9309）。它只對「願意遵守」的爬蟲有效；惡意或不在乎聲譽的抓取者可以直接忽略。Content Signals 同理，它是宣告，不是封鎖。任何「已擋住 AI」的說法，都必須以邊緣規則或實際 403／402 回應為證，不能只拿 robots.txt 當證據。
+`robots.txt` is a voluntary standard (RFC 9309). It only works on crawlers that choose to comply; a malicious scraper, or one that does not care about its reputation, can simply ignore it. The same is true of Content Signals: it is a declaration, not a block. Any claim that AI crawlers are "already blocked" must be backed by an edge rule or an actual 403 / 402 response — robots.txt alone is not evidence.
 
-### 2.2 AI crawler token 與依據
+### 2.2 AI crawler tokens and their basis
 
-產生器中的名稱不是憑印象列出，逐個對照如下（存取日期 2026-11-08）：
+The names in the generator were not listed from memory; each one is checked against the following sources (accessed 2026-11-08):
 
-| Token                | 類別               | 依據                                                                    |
-| -------------------- | ------------------ | ----------------------------------------------------------------------- |
-| `GPTBot`             | 訓練               | Cloudflare bot reference；OpenAI 官方頁讀取時被攔截，待確認             |
-| `ChatGPT-User`       | 使用者觸發         | Cloudflare bot reference                                                |
-| `OAI-SearchBot`      | AI 搜尋            | Cloudflare bot reference                                                |
-| `ClaudeBot`          | 訓練               | Anthropic 官方 crawler 文件                                             |
-| `Claude-User`        | 使用者觸發         | Anthropic 官方 crawler 文件                                             |
-| `Claude-SearchBot`   | AI 搜尋            | Anthropic 官方 crawler 文件                                             |
-| `anthropic-ai`       | 訓練（舊版）       | Anthropic 現行文件已改列 ClaudeBot 系列；保留作相容，待確認             |
-| `PerplexityBot`      | AI 搜尋            | Perplexity 官方 crawler 文件                                            |
-| `Perplexity-User`    | 使用者觸發         | Perplexity 官方 crawler 文件（明言使用者主動請求時一般忽略 robots.txt） |
-| `Google-Extended`    | 訓練（控制 token） | Google 官方；沒有獨立 HTTP UA                                           |
-| `Applebot-Extended`  | 訓練（控制 token） | Apple 官方；不自行抓取頁面                                              |
-| `CCBot`              | 訓練               | Common Crawl 官方 `CCBot` 頁                                            |
-| `Bytespider`         | 訓練               | Cloudflare bot reference（ByteDance 未見官方爬蟲頁）                    |
-| `Meta-ExternalAgent` | 訓練               | Cloudflare bot reference（UA 為 `meta-externalagent`）                  |
-| `Amazonbot`          | 訓練               | Cloudflare bot reference                                                |
-| `cohere-ai`          | 訓練               | 找不到 Cohere 現行官方爬蟲頁；保留作 best-effort，待確認                |
-| `Diffbot`            | 訓練               | Diffbot robots.txt FAQ（另有 `Diffbot-User`，本政策未列）               |
+| Token                | Category                 | Basis                                                                                                                         |
+| -------------------- | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
+| `GPTBot`             | Training                 | Cloudflare bot reference; the OpenAI official page was blocked when read — unconfirmed                                        |
+| `ChatGPT-User`       | User-triggered           | Cloudflare bot reference                                                                                                      |
+| `OAI-SearchBot`      | AI search                | Cloudflare bot reference                                                                                                      |
+| `ClaudeBot`          | Training                 | Anthropic official crawler documentation                                                                                      |
+| `Claude-User`        | User-triggered           | Anthropic official crawler documentation                                                                                      |
+| `Claude-SearchBot`   | AI search                | Anthropic official crawler documentation                                                                                      |
+| `anthropic-ai`       | Training (legacy)        | Anthropic's current documentation lists the ClaudeBot family instead; kept for compatibility — unconfirmed                    |
+| `PerplexityBot`      | AI search                | Perplexity official crawler documentation                                                                                     |
+| `Perplexity-User`    | User-triggered           | Perplexity official crawler documentation (which states that robots.txt is generally ignored when the user makes the request) |
+| `Google-Extended`    | Training (control token) | Google official; there is no separate HTTP UA                                                                                 |
+| `Applebot-Extended`  | Training (control token) | Apple official; it does not fetch pages itself                                                                                |
+| `CCBot`              | Training                 | Common Crawl official `CCBot` page                                                                                            |
+| `Bytespider`         | Training                 | Cloudflare bot reference (no official ByteDance crawler page found)                                                           |
+| `Meta-ExternalAgent` | Training                 | Cloudflare bot reference (the UA is `meta-externalagent`)                                                                     |
+| `Amazonbot`          | Training                 | Cloudflare bot reference                                                                                                      |
+| `cohere-ai`          | Training                 | No current official Cohere crawler page found; kept as best-effort — unconfirmed                                              |
+| `Diffbot`            | Training                 | Diffbot robots.txt FAQ (a separate `Diffbot-User` exists but is not listed in this policy)                                    |
 
-`Google-Extended` 與 `Applebot-Extended` 只存在於 robots.txt 的「控制」語義，邊緣 WAF 無法以 UA 辨識；`Perplexity-User` 的行為亦不受 robots.txt 保證。這三者在文件與程式註解中都已標明，避免把「寫了 robots.txt」誤當成「已封鎖」。
+`Google-Extended` and `Applebot-Extended` exist only in the "control" sense of robots.txt; an edge WAF cannot identify them by UA. `Perplexity-User`'s behaviour is likewise not guaranteed by robots.txt. All three are flagged in both the documentation and the code comments so that "we wrote it in robots.txt" is not mistaken for "it is blocked".
 
-## 3. 為何只有 robots.txt 不夠
+## 3. Why robots.txt alone is not enough
 
-本站在 Astro 7 以 `output: 'server'` 部署到 Cloudflare Workers，但**首頁、文章、小說章節等頁面是 prerender 的靜態資產**：
+This site runs Astro 7 with `output: 'server'` deployed to Cloudflare Workers, **but the home page, articles, novel chapters, and similar pages are prerendered static assets**:
 
-- prerender 頁面在建置時就產生，請求時不經 `src/middleware.ts`，所以 Worker 內的路徑檢查、CSP、任何「依 User-Agent 判斷」的邏輯都不會執行。這一點在本倉庫的 [`DEPLOY-CLOUDFLARE.md`](../DEPLOY-CLOUDFLARE.md) §14 已有記錄。
-- `public/_headers` 只能設定靜態標頭，不能依 `User-Agent` 分支。
-- 因此，若要「真的」讓 AI 爬蟲拿不到 `/world/*` 等內容，唯一可行的位置是 **Cloudflare 邊緣的 WAF 自訂規則**（或 Bot Management 政策），而不是 Worker 程式。
+- Prerendered pages are produced at build time and do not pass through `src/middleware.ts` at request time, so path checks, CSP, and any "decide by User-Agent" logic inside the Worker never run. This is already recorded in [`DEPLOY-CLOUDFLARE.md`](../DEPLOY-CLOUDFLARE.md) §14 of this repository.
+- `public/_headers` can only set static headers; it cannot branch on `User-Agent`.
+- Therefore, if AI crawlers are to "really" be kept away from content such as `/world/*`, the only viable place is a **Cloudflare edge WAF custom rule** (or a Bot Management policy), not Worker code.
 
-一句話：**程式負責宣告政策，Cloudflare 邊緣負責執行政策。**
+In one sentence: **the code declares the policy, the Cloudflare edge enforces it.**
 
-## 4. 必須在 Cloudflare 儀表板人手設定
+## 4. What must be configured by hand in the Cloudflare dashboard
 
-以下設定**不在本倉庫的程式內**，也不應假裝已設定。請在部署後逐項核對。
+The following settings are **not part of the code in this repository**, and should not be presented as already configured. Please check each item after deploying.
 
 ### 4.1 AI Crawler and Agent access policies
 
-官方文件：<https://developers.cloudflare.com/bots/additional-configurations/block-ai-bots/>（Last updated: 2026-11-02）
+Official documentation: <https://developers.cloudflare.com/bots/additional-configurations/block-ai-bots/> (Last updated: 2026-11-02)
 
-- 位置：**Security → Settings → 以 Bot traffic 篩選 → AI Crawler and Agent access policies**。
-- 行為分類為 **Search**、**Agent**、**Training**；動作有 **Block**、**Block on pages with ads**、**Allow (do not block)**，以及只適用 Training 的 **Disallow**。
-- 新網域預設三者皆為 **Allow**。也就是說，不進 dashboard 調整，AI 爬蟲就是被允許的。
-- `Disallow`（Training）會寫入 robots.txt；若同時開啟 Bot Preference Sync，亦會在邊緣封鎖。混合型（同時搜尋與訓練）爬蟲會被排除在邊緣封鎖之外——細節以官方文件為準。
+- Location: **Security → Settings → filter by Bot traffic → AI Crawler and Agent access policies**.
+- Behaviour is categorised as **Search**, **Agent**, and **Training**; the actions are **Block**, **Block on pages with ads**, **Allow (do not block)**, and **Disallow**, which applies to Training only.
+- New domains default to **Allow** for all three. In other words, if you never go into the dashboard to change it, AI crawlers are permitted.
+- `Disallow` (Training) is written into robots.txt; if Bot Preference Sync is also enabled, it blocks at the edge as well. Mixed crawlers (those used for both search and training) are excluded from edge blocking — see the official documentation for the details.
 
-**建議**：Search 保持 Allow；Training 與 Agent 依本文件政策設為 Block 或 Disallow。設定後務必用第 6 節方式複驗，並在 Security → Analytics → Events 觀察是否誤傷 Googlebot。
+**Recommendation**: keep Search on Allow; set Training and Agent to Block or Disallow according to this document's policy. After configuring, always re-verify using §6 and watch Security → Analytics → Events for collateral damage to Googlebot.
 
-### 4.2 Managed robots.txt（會改寫你送出的檔案）
+### 4.2 Managed robots.txt (it rewrites the file you serve)
 
-官方文件：<https://developers.cloudflare.com/bots/additional-configurations/managed-robots-txt/>（Last updated: 2026-11-02）
+Official documentation: <https://developers.cloudflare.com/bots/additional-configurations/managed-robots-txt/> (Last updated: 2026-11-02)
 
-- 只有在 **Enable Bot Preference Sync** 開啟，且至少一條 Search／Agent／Training 政策為 Block（或 Training 的 Disallow）時，Cloudflare 才會把你送出的 `robots.txt` **前面插入**託管指令與 Content Signals；全部 Allow 時原樣送出。
-- 若站上沒有 `robots.txt`，Cloudflare 會代為建立；若已有 HTTP 200 的 `robots.txt`，則以「前置合併」方式處理。所有方案皆適用。
-- 後果：**你以為的 robots.txt 可能不是最終送出的那份。** 上線後一定要 `curl` 取得實際內容，確認沒有重複或矛盾的群組。
+- Only when **Enable Bot Preference Sync** is on and at least one Search / Agent / Training policy is Block (or Disallow for Training) will Cloudflare **prepend** managed directives and Content Signals to the `robots.txt` you serve; when everything is Allow, your file is served as-is.
+- If the site has no `robots.txt`, Cloudflare creates one on its behalf; if a `robots.txt` already returns HTTP 200, it is handled by "prepend and merge". This applies to all plans.
+- Consequence: **the robots.txt you think you are serving may not be the final one.** After going live, always `curl` the real content and confirm there are no duplicate or contradictory groups.
 
-### 4.3 Bot Fight Mode 與 Block AI Bots 的互動
+### 4.3 How Bot Fight Mode interacts with Block AI Bots
 
-官方文件：<https://developers.cloudflare.com/bots/get-started/bot-fight-mode/>（Last updated: 2026-08-03）
+Official documentation: <https://developers.cloudflare.com/bots/get-started/bot-fight-mode/> (Last updated: 2026-08-03)
 
-- Bot Fight Mode 是免費產品，會對疑似機器人發出高成本的挑戰。
-- **它不能被 WAF 自訂規則或 Page Rules 跳過**：Skip／Bypass／Allow 在它所在的管線沒有作用。也就是說，若 Bot Fight Mode 誤挑戰正常流量，WAF 規則救不回來，只能關掉它。
-- 它會自動啟用 JavaScript Detections 且無法停用；在 `script-src 'self'` 的 CSP 下可能出現 console 錯誤，必要時需允許 `/cdn-cgi/challenge-platform/`。
-- 舊的「Block AI bots」開關已改由 4.1 的 AI Crawler and Agent access policies 管理。
+- Bot Fight Mode is a free product that issues high-cost challenges to suspected bots.
+- **It cannot be skipped by WAF custom rules or Page Rules**: Skip / Bypass / Allow have no effect on the pipeline it lives in. In other words, if Bot Fight Mode challenges legitimate traffic by mistake, a WAF rule cannot rescue it — the only option is to turn it off.
+- It automatically enables JavaScript Detections, which cannot be disabled; under a `script-src 'self'` CSP this may produce console errors, and `/cdn-cgi/challenge-platform/` may need to be allowed where necessary.
+- The old "Block AI bots" toggle is now managed by the AI Crawler and Agent access policies described in 4.1.
 
-**建議**：若啟用 Bot Fight Mode，必須在 Security → Analytics → Events（事件會標示 `Bot Fight Mode`）確認 Googlebot 等已驗證搜尋引擎未被挑戰。這是「確認 Googlebot 不受影響」的唯一實證方式，不能只看文件推論。
+**Recommendation**: if Bot Fight Mode is enabled, you must confirm in Security → Analytics → Events (events are labelled `Bot Fight Mode`) that verified search engines such as Googlebot are not being challenged. That is the only empirical way to "confirm Googlebot is unaffected" — inference from documentation alone is not enough.
 
-### 4.4 檢查清單
+### 4.4 Checklist
 
-- [ ] AI Crawler and Agent access policies：Search 允許；Training／Agent 依政策設定。
-- [ ] Bot Preference Sync：確認開啟或關閉的決定，並比對實際送出的 `robots.txt`。
-- [ ] Bot Fight Mode：確認是否需要；若開啟，檢查 Events 有否誤傷搜尋引擎。
-- [ ] `curl` 取得 `/robots.txt`，確認 `Content-Signal` 與 AI 群組存在且未被託管規則覆蓋成矛盾內容。
-- [ ] 以 Google Search Console 的網址檢驗工具或實際日誌確認 Googlebot 仍可抓取。
-- [ ] 在 Cloudflare Security Events 觀察 24 小時，再決定是否擴大封鎖範圍。
+- [ ] AI Crawler and Agent access policies: Search allowed; Training / Agent set according to policy.
+- [ ] Bot Preference Sync: decide whether it is on or off, and compare against the `robots.txt` actually served.
+- [ ] Bot Fight Mode: decide whether it is needed; if enabled, check Events for collateral damage to search engines.
+- [ ] `curl` `/robots.txt` and confirm that `Content-Signal` and the AI group are present and not overridden into contradictory content by managed rules.
+- [ ] Confirm Googlebot can still crawl, using the URL inspection tool in Google Search Console or the actual logs.
+- [ ] Watch Cloudflare Security Events for 24 hours before deciding whether to widen the blocked scope.
 
-## 5. WAF 自訂規則範本
+## 5. WAF custom rule template
 
-官方文件：<https://developers.cloudflare.com/waf/custom-rules/>（Last updated: 2026-10-16）
+Official documentation: <https://developers.cloudflare.com/waf/custom-rules/> (Last updated: 2026-10-16)
 
-先確認方案限制，否則規則寫得再對也部署不了：
+First check the plan limits, otherwise even a perfectly written rule cannot be deployed:
 
-| 項目         | Free   | Pro    | Business | Enterprise |
-| ------------ | ------ | ------ | -------- | ---------- |
-| 自訂規則數量 | 5      | 20     | 100      | 1000       |
-| `Log` 動作   | 不支援 | 不支援 | 不支援   | 支援       |
-| Regex        | 不支援 | 不支援 | 支援     | 支援       |
+| Item              | Free          | Pro           | Business      | Enterprise |
+| ----------------- | ------------- | ------------- | ------------- | ---------- |
+| Custom rule count | 5             | 20            | 100           | 1000       |
+| `Log` action      | Not supported | Not supported | Not supported | Supported  |
+| Regex             | Not supported | Not supported | Supported     | Supported  |
 
-因此範本刻意只用 `starts_with()`、`in {}` 與 `not (...)`，避免 Regex；`Log` 動作只有 Enterprise 可用，其他方案只能直接 Block（見 5.2）。若 Free 方案不接受 `cf.verified_bot_category`，改用後台的「Verified Bot」欄位（語意較粗，會一併匹配非 AI 的驗證機器人），或只依賴 robots.txt；不要把未經試存的欄位直接上線（見第 8 節第 6 點）。
+The template therefore deliberately uses only `starts_with()`, `in {}`, and `not (...)` to avoid Regex; the `Log` action is available only on Enterprise, so other plans can only Block directly (see 5.2). If the Free plan does not accept `cf.verified_bot_category`, use the "Verified Bot" field in the dashboard instead (coarser semantics, since it also matches verified bots that are not AI), or rely on robots.txt alone; do not put an unverified field into a live rule without a trial save (see §8 item 6).
 
-### 5.1 表達式（Block）
+### 5.1 Expression (Block)
 
-在 **Security → WAF → Custom rules → Create rule → Edit expression** 貼上，並把三個試閱章節換成真實 slug：
+Paste this into **Security → WAF → Custom rules → Create rule → Edit expression**, and replace the three preview chapters with the real slugs:
 
 ```text
 (starts_with(http.request.uri.path, "/posts/novel/")
@@ -159,85 +159,85 @@ and cf.verified_bot_category in {"AI Crawler" "AI Assistant" "AI Search"}
 and not (http.request.uri.path in {"/posts/novel/chapter-1" "/posts/novel/chapter-2" "/posts/novel/chapter-3"})
 ```
 
-- `cf.verified_bot_category` 是 Ruleset Engine 欄位，值為字串；合法的舊分類包括 `AI Crawler`、`AI Assistant`、`AI Search`、`Search Engine Crawler` 等。官方文件：<https://developers.cloudflare.com/bots/concepts/bot/verified-bots/>（Last updated: 2026-11-02）與 <https://developers.cloudflare.com/bots/reference/bot-management-variables/>（Last updated: 2026-09-16）。
-- 2026-07-01 起的新行為分類（Search／Agent／Training……）**不是** WAF 欄位；請用上表的舊分類值。
-- 這個條件只匹配**已驗證**機器人。未驗證、偽造 `User-Agent` 的請求不會被這條規則擋下——這正是 robots.txt 與 WAF 都只是「盡力而為」的原因。
-- `Google-Extended` 與 `Applebot-Extended` 是**控制 token，不是 HTTP User-Agent**，邊緣規則無法單獨辨識它們；這兩個只能靠 robots.txt 表達意願。`Perplexity-User` 官方明言「使用者主動請求時一般會忽略 robots.txt」，其行為亦不能在邊緣以 robots.txt 證明。
+- `cf.verified_bot_category` is a Ruleset Engine field whose value is a string; valid legacy categories include `AI Crawler`, `AI Assistant`, `AI Search`, `Search Engine Crawler`, and others. Official documentation: <https://developers.cloudflare.com/bots/concepts/bot/verified-bots/> (Last updated: 2026-11-02) and <https://developers.cloudflare.com/bots/reference/bot-management-variables/> (Last updated: 2026-09-16).
+- The new behaviour categories introduced on 2026-07-01 (Search / Agent / Training, …) are **not** WAF fields; use the legacy category values from the table above.
+- This condition matches **verified** bots only. Unverified requests with a forged `User-Agent` are not stopped by this rule — which is exactly why both robots.txt and WAF are best-effort.
+- `Google-Extended` and `Applebot-Extended` are **control tokens, not HTTP User-Agents**, so edge rules cannot identify them on their own; only robots.txt can express intent for those two. For `Perplexity-User`, the official statement is that "robots.txt is generally ignored when the user makes the request", so its behaviour also cannot be proven at the edge through robots.txt.
 
-### 5.2 Log 先行的 rollout
+### 5.2 Log-first rollout
 
-1. **Enterprise**：先把動作設為 `Log`，觀察 24–72 小時的 Security Events，確認命中的都是 AI 爬蟲、沒有搜尋引擎，再改成 `Block`。
-2. **Free／Pro／Business**：沒有 `Log` 動作。先只把**單一前綴**（例如 `/world/`）設為 Block，觀察 Events 與站長工具 24 小時，確認無誤傷後才加入其餘前綴。
-3. 任何時候都不要把 `cf.verified_bot_category` 的 `Search Engine Crawler` 放進封鎖條件。
+1. **Enterprise**: first set the action to `Log`, watch Security Events for 24–72 hours, confirm that every hit is an AI crawler and none is a search engine, then change it to `Block`.
+2. **Free / Pro / Business**: there is no `Log` action. Block only **one prefix** first (for example `/world/`), watch Events and the webmaster tools for 24 hours, and add the remaining prefixes only after confirming there is no collateral damage.
+3. Never put `Search Engine Crawler` from `cf.verified_bot_category` into a blocking condition at any point.
 
-## 6. 驗證方式與 curl
+## 6. How to verify, and curl
 
 ```bash
-# 1. 實際送出的 robots.txt（含 Cloudflare 託管規則）
+# 1. The robots.txt actually served (including Cloudflare managed rules)
 curl -sS https://www.example.com/robots.txt
 
-# 2. 以 AI 爬蟲 UA 請求受限路徑
+# 2. Request a restricted path with an AI crawler UA
 curl -sS -o /dev/null -w '%{http_code}\n' \
   -A 'GPTBot' https://www.example.com/world/
 
-# 3. 以搜尋引擎 UA 請求同一路徑（應該維持可抓取）
+# 3. Request the same path with a search engine UA (it should stay crawlable)
 curl -sS -o /dev/null -w '%{http_code}\n' \
   -A 'Googlebot' https://www.example.com/world/
 ```
 
-**這些指令能證明什麼、不能證明什麼：**
+**What these commands can and cannot prove:**
 
-- 能證明：`robots.txt` 的內容、伺服器對「這個 UA 字串」的回應碼、WAF 是否對來自你目前 IP 的請求生效。
-- 不能證明：真實爬蟲的行為。`User-Agent` 可以任意偽造；`curl -A GPTBot` 不是 GPTBot，也不會帶有 Web Bot Auth 簽章，因此不會匹配 `cf.verified_bot_category`。封鎖是否真的擋住 OpenAI／Anthropic，只能看 Cloudflare 的 verified bot 日誌與實際流量。
-- 也不能證明 robots.txt 被遵守——它本來就沒有強制力。
+- They can prove: the content of `robots.txt`, the server's response code for "this UA string", and whether the WAF applies to requests from your current IP.
+- They cannot prove: the behaviour of real crawlers. `User-Agent` can be forged freely; `curl -A GPTBot` is not GPTBot and carries no Web Bot Auth signature, so it will not match `cf.verified_bot_category`. Whether the block really stops OpenAI / Anthropic can only be established from Cloudflare's verified bot logs and real traffic.
+- They also cannot prove that robots.txt is being honoured — it has no enforcement power to begin with.
 
-## 7. 收費（Pay Per Crawl）現況
+## 7. Pay Per Crawl status
 
-官方文件（全部於 2026-11-08 讀取）：
+Official documentation (all read on 2026-11-08):
 
-- <https://developers.cloudflare.com/ai-crawl-control/features/pay-per-crawl/what-is-pay-per-crawl/>（Last updated: 2026-07-28）
-- <https://developers.cloudflare.com/ai-crawl-control/features/pay-per-crawl/use-pay-per-crawl-as-site-owner/set-a-pay-per-crawl-price/>（Last updated: 2026-07-28）
-- <https://developers.cloudflare.com/ai-crawl-control/features/pay-per-crawl/faq/>（Last updated: 2026-04-23）
+- <https://developers.cloudflare.com/ai-crawl-control/features/pay-per-crawl/what-is-pay-per-crawl/> (Last updated: 2026-07-28)
+- <https://developers.cloudflare.com/ai-crawl-control/features/pay-per-crawl/use-pay-per-crawl-as-site-owner/set-a-pay-per-crawl-price/> (Last updated: 2026-07-28)
+- <https://developers.cloudflare.com/ai-crawl-control/features/pay-per-crawl/faq/> (Last updated: 2026-04-23)
 
-已確認的要點：
+Confirmed points:
 
-- **目前是封閉測試（closed beta）**，需透過 <https://www.cloudflare.com/paypercrawl-signup/> 或 Enterprise 客戶經理申請。不是打開開關就能收費。
-- 收費單位是**每個 zone 單一價格**，每次成功取得內容（HTTP 200）計費；可為不同爬蟲選 Block／Charge／Allow，但不能為不同爬蟲設不同價。最低價 **US$0.001／次**。
-- 付款意向由爬蟲以請求標頭表達；未付款會收到 **HTTP 402 Payment Required**。Cloudflare 是 Merchant of Record。
-- **WAF 或 Bot Management 的封鎖會覆寫收費**：被擋下的爬蟲不會取得內容，也不會被計費。所以「先 Block、之後改收費」必須調整邊緣規則，不能只改 robots.txt。
-- 永遠免費的路徑：`/robots.txt`、`/sitemap.xml`、`/security.txt`、`/.well-known/security.txt`、`/crawlers.json`。
-- 爬蟲必須以已 onboard 到 Cloudflare 的標準 UA，並透過 **Web Bot Auth** 識別；也就是說，收費只對「可識別、可驗簽」的爬蟲成立，對匿名抓取者無效。
+- **It is currently a closed beta**, and you must apply through <https://www.cloudflare.com/paypercrawl-signup/> or your Enterprise account manager. There is no switch you can simply turn on to start charging.
+- Pricing is **a single price per zone**, charged on each successful retrieval of content (HTTP 200); you can choose Block / Charge / Allow per crawler, but you cannot set a different price for different crawlers. The minimum price is **US$0.001 per request**.
+- Payment intent is expressed by the crawler in a request header; a crawler that does not pay receives **HTTP 402 Payment Required**. Cloudflare is the Merchant of Record.
+- **A WAF or Bot Management block overrides charging**: a blocked crawler gets no content and is not billed. So "block first, charge later" must change the edge rules, not just robots.txt.
+- Always-free paths: `/robots.txt`, `/sitemap.xml`, `/security.txt`, `/.well-known/security.txt`, `/crawlers.json`.
+- Crawlers must use a standard UA onboarded to Cloudflare and be identified through **Web Bot Auth**; in other words, charging only applies to crawlers that are identifiable and whose signature can be verified, and has no effect on anonymous scrapers.
 
-本站在計劃核准前的做法：`paid` 分層照 `blocked` 處理，並在程式註解標明切換點；不把「未來可收費」寫成「現在已收費」。
+This site's approach before the programme is approved: the `paid` tier is handled exactly like `blocked`, and the switch point is marked in the code comments; "may be charged in the future" is not written up as "is charged now".
 
-## 8. 待向 Cloudflare 確認
+## 8. To be confirmed with Cloudflare
 
-以下問題官方文件未給出足夠明確的答案，或需要帳戶層級的確認，**不要當成事實對外宣稱**：
+The official documentation does not give a clear enough answer to the following questions, or an account-level confirmation is required. **Do not present them publicly as fact**:
 
-1. **按路徑定價**：文件提到 dynamic pricing 可為不同內容設不同價格，但具體能否以 URL 路徑為單位、規則如何設定，待確認。
-2. **WAF 與計費的先後次序**：文件說 WAF／Bot Management 會覆寫 charge；但「已驗證爬蟲被 WAF 放行後，402 與計費的實際順序」仍需以 beta 文件或支援確認。
-3. **收款帳戶與稅務**：payout 帳戶、結算幣別、稅務責任（Merchant of Record 下的實際流程）待確認。
-4. **子網域資格**：啟用條件是網域使用 Cloudflare nameservers 或 DNS 由 Cloudflare 管理；`www.example.com` 這類子網域是否符合 beta 資格，待確認。
-5. **beta 准入**：一般方案能否加入、審核標準與等待時間，待確認。
-6. **Free 方案的 WAF 欄位**：官方可用性表只寫「Verified Bot」；Free 方案的自訂規則是否接受 `cf.verified_bot_category`（以及後台欄位實際編譯成哪個名稱）尚未證實。上線前請在後台以草稿規則試存，失敗就不要把該欄位放進正式規則。
+1. **Per-path pricing**: the documentation mentions that dynamic pricing can set different prices for different content, but whether that can be done per URL path, and how the rule would be configured, is unconfirmed.
+2. **Ordering of WAF and billing**: the documentation says WAF / Bot Management overrides charging, but the actual sequence of the 402 and billing once a verified crawler has been allowed through by the WAF still needs to be confirmed from beta documentation or support.
+3. **Payout account and tax**: the payout account, settlement currency, and tax liability (the actual process under Merchant of Record) are unconfirmed.
+4. **Subdomain eligibility**: the requirement is that the domain uses Cloudflare nameservers or that its DNS is managed by Cloudflare; whether a subdomain such as `www.example.com` qualifies for the beta is unconfirmed.
+5. **Beta admission**: whether ordinary plans can join, the review criteria, and the wait time are unconfirmed.
+6. **WAF fields on the Free plan**: the official availability table only says "Verified Bot"; whether Free-plan custom rules accept `cf.verified_bot_category` (and what name the dashboard field actually compiles to) has not been proven. Before going live, trial-save a draft rule in the dashboard; if it fails, do not put that field into the production rule.
 
-## 9. 參考資料
+## 9. References
 
-所有連結的最後存取日期均為 **2026-11-08**。
+All links below were last accessed on **2026-11-08**.
 
-- Content Signals Policy：<https://blog.cloudflare.com/content-signals-policy>
-- Managed robots.txt：<https://developers.cloudflare.com/bots/additional-configurations/managed-robots-txt/>
-- AI Crawler and Agent access policies：<https://developers.cloudflare.com/bots/additional-configurations/block-ai-bots/>
-- Verified bots（分類值）：<https://developers.cloudflare.com/bots/concepts/bot/verified-bots/>
-- Bot Management variables：<https://developers.cloudflare.com/bots/reference/bot-management-variables/>
-- WAF Custom rules（方案限制）：<https://developers.cloudflare.com/waf/custom-rules/>
-- Bot Fight Mode：<https://developers.cloudflare.com/bots/get-started/bot-fight-mode/>
-- Pay Per Crawl：<https://developers.cloudflare.com/ai-crawl-control/features/pay-per-crawl/what-is-pay-per-crawl/>
-- AI Crawl Control bot reference（UA 對照）：<https://developers.cloudflare.com/ai-crawl-control/reference/bots/>
-- OpenAI crawler 文件：<https://platform.openai.com/docs/bots>（讀取時被 Cloudflare 攔截，UA 名單以 Cloudflare bot reference 為準，待確認）
-- Anthropic crawler 文件：<https://support.claude.com/en/articles/8896518-does-anthropic-crawl-data-from-the-web-and-how-can-site-owners-block-the-crawler>
-- Perplexity crawler 文件：<https://docs.perplexity.ai/docs/resources/perplexity-crawlers>
-- Google common crawlers（含 `Google-Extended`）：<https://developers.google.com/crawling/docs/crawlers-fetchers/google-common-crawlers>
-- Applebot 與 `Applebot-Extended`：<https://support.apple.com/en-us/119829>
-- Common Crawl `CCBot`：<https://commoncrawl.org/ccbot>
-- Diffbot robots.txt 說明：<https://www.diffbot.com/docs/crawl/faq/robots-txt>
+- Content Signals Policy: <https://blog.cloudflare.com/content-signals-policy>
+- Managed robots.txt: <https://developers.cloudflare.com/bots/additional-configurations/managed-robots-txt/>
+- AI Crawler and Agent access policies: <https://developers.cloudflare.com/bots/additional-configurations/block-ai-bots/>
+- Verified bots (category values): <https://developers.cloudflare.com/bots/concepts/bot/verified-bots/>
+- Bot Management variables: <https://developers.cloudflare.com/bots/reference/bot-management-variables/>
+- WAF Custom rules (plan limits): <https://developers.cloudflare.com/waf/custom-rules/>
+- Bot Fight Mode: <https://developers.cloudflare.com/bots/get-started/bot-fight-mode/>
+- Pay Per Crawl: <https://developers.cloudflare.com/ai-crawl-control/features/pay-per-crawl/what-is-pay-per-crawl/>
+- AI Crawl Control bot reference (UA mapping): <https://developers.cloudflare.com/ai-crawl-control/reference/bots/>
+- OpenAI crawler documentation: <https://platform.openai.com/docs/bots> (blocked by Cloudflare when read; the UA list follows the Cloudflare bot reference — unconfirmed)
+- Anthropic crawler documentation: <https://support.claude.com/en/articles/8896518-does-anthropic-crawl-data-from-the-web-and-how-can-site-owners-block-the-crawler>
+- Perplexity crawler documentation: <https://docs.perplexity.ai/docs/resources/perplexity-crawlers>
+- Google common crawlers (including `Google-Extended`): <https://developers.google.com/crawling/docs/crawlers-fetchers/google-common-crawlers>
+- Applebot and `Applebot-Extended`: <https://support.apple.com/en-us/119829>
+- Common Crawl `CCBot`: <https://commoncrawl.org/ccbot>
+- Diffbot robots.txt documentation: <https://www.diffbot.com/docs/crawl/faq/robots-txt>

@@ -2,7 +2,7 @@
 
 <h1>FluentFolio</h1>
 
-**Fluent 風格的個人網站範本：部落格、連載小說、詞典、世界觀、即時動態與站點狀態，一次到位。**
+**A Fluent-style personal website template: blog, serialized fiction, dictionary, worldbuilding, live presence and site status, all in one.**
 
 ![Node.js](https://img.shields.io/badge/Node.js-%E2%89%A522.23.4-5FA04E?logo=nodedotjs&logoColor=white)
 ![Astro](https://img.shields.io/badge/Astro-7-BC52EE?logo=astro&logoColor=white)
@@ -10,273 +10,277 @@
 ![Cloudflare Workers](https://img.shields.io/badge/Cloudflare-Workers-F38020?logo=cloudflare&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-green)
 
-**繁體中文** | [English](README.en.md)
-
 </div>
 
-- 🌓 **Fluent 風格介面**：深色／淺色主題、玻璃質感頂欄、頁面轉場動畫，遵循 [Fluent 動態與設計規範](docs/Fluent_UI_Design_Motion_Guidelines_for_Astro.md)
-- ⚡ **Cloudflare 全家桶**：Astro SSR 跑在 Workers，資料放 D1，圖片放 R2，不需要自己維護伺服器
-- ✍️ **內建後台**：Passkey 加 Cloudflare Access 保護，Markdown 即時預覽與檢查，發佈時直接 commit 到 GitHub
-- 🌏 **中文優先**：繁體中文與英文介面一鍵切換，搜尋支援拼音與粵拼
+- 🌓 **Fluent look and feel**: dark/light themes, a glass topbar and page transitions, following the [Fluent motion and design guidelines](docs/Fluent_UI_Design_Motion_Guidelines_for_Astro.md)
+- ⚡ **All on Cloudflare**: Astro SSR runs on Workers, data lives in D1, images in R2 — no server of your own to maintain
+- ✍️ **Built-in admin**: Passkey plus Cloudflare Access, live Markdown preview and linting, publishing commits straight to GitHub
+- 🌏 **Chinese first**: one-click switch between the Traditional Chinese and English UI, search with pinyin and jyutping
 
 > [!TIP]
-> FluentFolio 是從一個真實運作中的個人網站去除個人內容後整理成的範本。它是「主題」，不是要 fork 後大改的起點：你自己的東西放在另一層，升級時只要合併主題。
+> FluentFolio is a template distilled from a real, running personal site with the personal content stripped out. It is a **theme**, not a starting point to fork and rewrite: your own material lives in a separate layer, and upgrading means merging the theme.
 >
-> 1. 修改 [`site.config.json`](site.config.json)：標題、網址、作者、導覽、RSS、授權、社交連結、About 頁的設備與遊戲。
-> 2. 把 logo、favicon、圖示、背景影片與音效放進 `public/brand/`（目前是中性素材）。
-> 3. 文章與上述個人設定、品牌素材建議放在**另一個私有倉庫**，建置時用 `npm run fetch:content` 覆蓋進來。
-> 4. 需要改文案時才動 [`src/i18n/ui.ts`](src/i18n/ui.ts)。
+> 1. Edit [`site.config.json`](site.config.json): title, URL, author, navigation, feeds, licence, social links, and the About page's setup and games.
+> 2. Put the logo, favicon, icons, background video and audio into `public/brand/` (they are neutral placeholders today).
+> 3. Keep posts together with that personal configuration and brand media in a **separate private repository**, and overlay them at build time with `npm run fetch:content`.
+> 4. Only touch [`src/i18n/ui.json`](src/i18n/ui.json) when you need to change the copy.
 >
-> 完整的三層模型與合併步驟見 [`docs/UPGRADING.md`](docs/UPGRADING.md)。
+> The full three-layer model and the merge steps are in [`docs/UPGRADING.md`](docs/UPGRADING.md).
 
-## ✨ 功能特性
+## ✨ Features
 
-### 內容
+### Content
 
-- [x] **四種內容集合** - 隨筆（`blog`）、連載小說（`novel`）、詞典（`dictionary`）、世界觀（`world`），全部是 Markdown
-- [x] **閱讀體驗** - 目錄、閱讀進度、上一章／下一章、閱讀時間，以及 `[[詞彙]]` 懸浮詞典提示
-- [x] **站內搜尋** - Fuse.js 全站搜尋，支援拼音與粵拼，`/` 快捷鍵呼叫
-- [x] **訂閱與 SEO** - 部落格與小說各自的 RSS、sitemap、robots.txt、Open Graph 圖片、JSON-LD
-- [x] **草稿** - `draft: true` 的條目不會出現在網站、RSS 或搜尋中
-- [x] **文章保護（選用）** - 複製防護、浮水印、爬蟲分級，逐篇用 `copyProtect` 與 `crawl` 設定
+- [x] **Four collections** - essays (`blog`), serialized fiction (`novel`), `dictionary` and `world`, all Markdown
+- [x] **Reading experience** - table of contents with numbered sections, reading progress, previous/next chapter, reading time, click-to-zoom image lightbox, and `[[term]]` hover glossary
+- [x] **Site search** - Fuse.js full-site search with pinyin and jyutping, opened with the `/` shortcut
+- [x] **Feeds and SEO** - separate RSS and Atom feeds for blog and novel, sitemap, robots.txt, Open Graph images, JSON-LD
+- [x] **Drafts** - entries with `draft: true` never appear on the site, in the feeds or in search
+- [x] **Content protection (optional)** - copy protection, watermark and crawler tiers, configured per entry through `copyProtect` and `crawl`
 
-### 動態與營運
+### Presence and operations
 
-- [x] **即時動態** - 透過 Lanyard 顯示 Discord 狀態，並顯示 Steam 正在遊玩的遊戲
-- [x] **站點狀態頁** - 網站、資料庫、動態來源的健康探測，附歷史紀錄
-- [x] **訪客統計** - 使用 D1，IP 雜湊後才使用，以 Cloudflare Turnstile 防濫用
-- [x] **安全標頭** - 以 middleware 輸出 CSP 與常見安全標頭
+- [x] **Live presence** - Discord status through Lanyard, plus the Steam game currently being played
+- [x] **Status page** - health probes for the site, the database and the presence sources, with history
+- [x] **Visitor statistics** - D1, with IPs hashed before use and Cloudflare Turnstile against abuse
+- [x] **Security headers** - CSP and the common security headers emitted by middleware
 
-### 後台 CMS
+### Admin CMS
 
-- [x] **登入保護** - Cloudflare Access 加 Passkey，密碼只作為備援
-- [x] **編輯器** - 左右分欄預覽、Markdown 檢查、圖片上傳到 R2、草稿存在 D1
-- [x] **直接發佈** - 透過 GitHub API commit，Workers Builds 自動重新部署
-- [x] **發佈通知** - 可選的 Discord Webhook
+- [x] **Login protection** - Cloudflare Access plus Passkey, with the password as a fallback only
+- [x] **Editor** - split-pane preview, Markdown linting, image upload to R2, drafts stored in D1
+- [x] **Direct publishing** - commits through the GitHub API, Workers Builds redeploys automatically
+- [x] **Publish notifications** - optional Discord webhook
 
-### 開發品質
+### Development quality
 
-- [x] **型別與測試** - TypeScript 嚴格檢查，300 多個單元測試
-- [x] **CI** - GitHub Actions 只負責驗證，部署交給 Cloudflare Workers Builds
-- [x] **內容驗證** - `npm run validate:md` 檢查 frontmatter、圖片、內部連結與條目之間的關聯
+- [x] **Types and tests** - strict TypeScript checking, 300+ unit tests
+- [x] **CI** - GitHub Actions only validates; Cloudflare Workers Builds deploys
+- [x] **Content validation** - `npm run validate:md` checks frontmatter, images, internal links and the references between entries
 
-有想法歡迎提交 Pull Request。
+Ideas are welcome as pull requests.
 
-## 🚀 快速開始
+## 🚀 Getting Started
 
-### 環境要求
+### Requirements
 
-- Node.js **22.23.4**（見 `.nvmrc`；Astro 7.4.2 不接受更舊的 22.x，也不支援 Node 24）
+- Node.js **22.23.4** (see `.nvmrc`; Astro 7.4.2 rejects older 22.x and does not support Node 24)
 - npm
-- 部署需要 [Cloudflare](https://dash.cloudflare.com) 帳號（免費方案即可起步）
+- A [Cloudflare](https://dash.cloudflare.com) account for deployment (the free plan is enough to start)
 
-### 本機開發
+### Local development
 
-1. 點擊右上角 **Use this template** 或 Fork 本倉庫，再 clone 到本機。
+1. Click **Use this template** in the top right or fork the repository, then clone it.
 
    ```bash
    git clone https://github.com/your-name/fluentfolio.git
    cd fluentfolio
    ```
 
-2. 切換 Node 版本並安裝依賴。
+2. Switch to the right Node version and install dependencies.
 
    ```bash
    nvm use 22.23.4
    npm ci
    ```
 
-3. 建立本機設定檔。留空的項目會優雅降級：對應的面板會顯示「未設定」，不會讓網站壞掉。
+3. Create the local configuration file. Anything left empty degrades gracefully: the matching panel shows "not configured" instead of breaking the site.
 
    ```bash
    cp .env.example .dev.vars
    ```
 
-4. 初始化本機 D1 資料庫，然後啟動。
+4. Initialise the local D1 database, then start.
 
    ```bash
    npx wrangler d1 migrations apply personal-site --local
    npm run dev
    ```
 
-   開啟 <http://localhost:4321>。
+   Open <http://localhost:4321>.
 
 > [!NOTE]
-> 本機祕密與變數放在 `.dev.vars`（已被 git 忽略），不要放進 `.env`，也不要提交。
+> Local secrets and variables go in `.dev.vars` (git-ignored). Do not put them in `.env`, and never commit them.
 
-### 部署到 Cloudflare
+### Deploy to Cloudflare
 
-完整的逐步說明在 [DEPLOY-CLOUDFLARE.md](DEPLOY-CLOUDFLARE.md)，倉庫與 Workers Builds 的串接在 [CLOUDFLARE-GITHUB-CICD.md](CLOUDFLARE-GITHUB-CICD.md)。大致流程：
+The step-by-step guide is in [DEPLOY-CLOUDFLARE.md](DEPLOY-CLOUDFLARE.md), and the repository / Workers Builds wiring is in [CLOUDFLARE-GITHUB-CICD.md](CLOUDFLARE-GITHUB-CICD.md). Roughly:
 
-1. 建立資源：D1（`npx wrangler d1 create personal-site`）、KV（`npx wrangler kv namespace create SESSION`）、R2（`npx wrangler r2 bucket create blog-images`）。
-2. 把 `wrangler.jsonc` 裡所有 `<YOUR_…>` 佔位值與 `example.com` 換成你自己的。
-3. 套用資料庫 migration：`npx wrangler d1 migrations apply personal-site --remote`。
-4. 用 `npx wrangler secret put` 設定祕密（見下方環境變數表）。
-5. 在 Cloudflare 把倉庫連到 Workers Builds：建置指令 `npm run build`，部署指令 `npx wrangler deploy`。之後推送到 `main` 就會自動部署。
+1. Create the resources: D1 (`npx wrangler d1 create personal-site`), KV (`npx wrangler kv namespace create SESSION`) and R2 (`npx wrangler r2 bucket create blog-images`).
+2. Replace every `<YOUR_…>` placeholder and every `example.com` in `wrangler.jsonc` with your own values.
+3. Apply the database migrations: `npx wrangler d1 migrations apply personal-site --remote`.
+4. Set the secrets with `npx wrangler secret put` (see the environment variable table below).
+5. In Cloudflare, connect the repository to Workers Builds: build command `npm run build`, deploy command `npx wrangler deploy`. From then on, a push to `main` deploys automatically.
 
 > [!IMPORTANT]
-> `.github/workflows/ci.yml` 只做驗證，不要加部署步驟，否則會和 Workers Builds 互相打架。
+> `.github/workflows/ci.yml` only validates. Do not add a deploy step, or it will fight with Workers Builds.
 
-### 環境變數
+### Environment variables
 
-全部都是選填，沒設定時對應功能會停用。完整清單與說明見 [`.env.example`](.env.example)。
+All of them are optional; when a value is missing, the matching feature is disabled. See [`.env.example`](.env.example) for the full list and explanations.
 
-| 變數                                            | 用途                               |
-| ----------------------------------------------- | ---------------------------------- |
-| `DISCORD_USER_ID`                               | 首頁 Discord 動態面板顯示哪個帳號  |
-| `STEAM_API_KEY`、`STEAM_ID`                     | Steam 正在遊玩與個人資料           |
-| `ACCESS_TEAM_DOMAIN`、`ACCESS_AUD`              | Cloudflare Access（保護 `/admin`） |
-| `ADMIN_PASSWORD`、`ADMIN_SESSION_SECRET`        | 後台登入與工作階段                 |
-| `ADMIN_WEBAUTHN_RP_ID`、`ADMIN_WEBAUTHN_ORIGIN` | Passkey 的網域設定                 |
-| `GITHUB_TOKEN`、`GITHUB_REPO`、`GITHUB_BRANCH`  | 後台發佈文章時 commit 的目標       |
-| `R2_PUBLIC_BASE_URL`                            | 後台上傳圖片的公開網址             |
-| `TURNSTILE_SECRET`、`TURNSTILE_HOSTNAMES`       | 訪客統計的人機驗證                 |
-| `VISITOR_SALT`、`VISITOR_COOKIE_SECRET`         | 訪客識別雜湊                       |
-| `WATERMARK_SECRET`                              | 文章浮水印                         |
-| `DISCORD_BLOG_WEBHOOK_URL`                      | 發佈新文章時的 Discord 通知        |
+| Variable                                        | Purpose                                           |
+| ----------------------------------------------- | ------------------------------------------------- |
+| `DISCORD_USER_ID`                               | Which account the homepage Discord panel shows    |
+| `STEAM_API_KEY`, `STEAM_ID`                     | Steam now-playing and profile                     |
+| `ACCESS_TEAM_DOMAIN`, `ACCESS_AUD`              | Cloudflare Access (protects `/admin`)             |
+| `ADMIN_PASSWORD`, `ADMIN_SESSION_SECRET`        | Admin login and session                           |
+| `ADMIN_WEBAUTHN_RP_ID`, `ADMIN_WEBAUTHN_ORIGIN` | Passkey domain settings                           |
+| `GITHUB_TOKEN`, `GITHUB_REPO`, `GITHUB_BRANCH`  | Where the admin commits posts when publishing     |
+| `R2_PUBLIC_BASE_URL`                            | Public URL for images uploaded from the admin     |
+| `TURNSTILE_SECRET`, `TURNSTILE_HOSTNAMES`       | Human verification for visitor statistics         |
+| `VISITOR_SALT`, `VISITOR_COOKIE_SECRET`         | Visitor identity hashing                          |
+| `WATERMARK_SECRET`                              | Article watermark                                 |
+| `DISCORD_BLOG_WEBHOOK_URL`                      | Discord notification when a new post is published |
 
-## 📖 配置說明
+## 📖 Configuration
 
-### 先改這幾個地方
+### What to edit where
 
-| 想改什麼                         | 在哪裡改                                                           |
-| -------------------------------- | ------------------------------------------------------------------ |
-| 站名、標題後綴、導覽列項目       | [`src/site.config.ts`](src/site.config.ts)                         |
-| 名字、帳號、標語、社交連結       | [`src/lib/data.ts`](src/lib/data.ts)                               |
-| About 頁的設備與遊戲             | [`src/lib/data.ts`](src/lib/data.ts) 的 `aboutSetup`、`aboutGames` |
-| 捐助按鈕（Ko-fi、Liberapay 等）  | [`src/lib/data.ts`](src/lib/data.ts) 的 `supportLinks`，預設為空   |
-| 所有介面文字、私隱政策、使用條款 | [`src/i18n/ui.ts`](src/i18n/ui.ts)（`zh` 與 `en` 兩份）            |
-| 網域、資源 ID、Access 設定       | [`wrangler.jsonc`](wrangler.jsonc)                                 |
-| 配色、圓角、陰影                 | [`src/styles/tokens.css`](src/styles/tokens.css)                   |
-| Logo、favicon、PWA 圖示          | `public/logo.svg`、`public/favicon.svg`、`public/icons/`           |
-| 背景圖與背景影片                 | `src/assets/background.webp`、`public/background.mp4`、`.webm`     |
-| 彩蛋音效                         | `public/easter.mp3`                                                |
+| To change                                 | Where to edit                                                              |
+| ----------------------------------------- | -------------------------------------------------------------------------- |
+| Site name, title suffix, navigation items | [`site.config.json`](site.config.json)                                     |
+| Name, handles, tagline, social links      | [`site.config.json`](site.config.json)                                     |
+| About page setup and games                | `about.setup`, `about.games` in [`site.config.json`](site.config.json)     |
+| Donation buttons (Ko-fi, Liberapay, ...)  | `supportLinks` in [`site.config.json`](site.config.json), empty by default |
+| All UI strings, privacy policy, terms     | [`src/i18n/ui.json`](src/i18n/ui.json) (the `zh` and `en` copies)          |
+| Domain, resource IDs, Access settings     | [`wrangler.jsonc`](wrangler.jsonc)                                         |
+| Colours, corner radii, shadows            | [`src/styles/tokens.css`](src/styles/tokens.css)                           |
+| Logo, favicon, PWA icons                  | `public/brand/logo.svg`, `public/brand/favicon.svg`, `public/brand/icons/` |
+| Background image and background video     | `src/assets/background.webp`, `public/brand/background.mp4`, `.webm`       |
+| Easter egg sound                          | `public/brand/easter.mp3`                                                  |
 
-想日後無痛升級主題，請看 [`docs/UPGRADING.md`](docs/UPGRADING.md)：站點設定、內容與主題三層分開，升級時只有站點層會衝突。
+Every site-specific value lives in one file, [`site.config.json`](site.config.json); [`src/site.config.ts`](src/site.config.ts) is its typed loader and [`src/lib/data.ts`](src/lib/data.ts) is a compatibility re-export. UI copy lives in [`src/i18n/ui.json`](src/i18n/ui.json), with [`src/i18n/ui.ts`](src/i18n/ui.ts) as the typed accessor.
 
-### 目錄結構
+To keep theme upgrades painless, read [`docs/UPGRADING.md`](docs/UPGRADING.md): the site configuration, the content and the theme are three separate layers, so only the site layer conflicts during an upgrade.
+
+### Directory structure
 
 ```text
 ├── src/
-│   ├── content/          # 你的文章：blog、novel、dictionary、world
-│   ├── content.config.ts # 各集合的 frontmatter 結構（單一事實來源）
-│   ├── i18n/ui.ts        # 中英文介面文字與法律文本
-│   ├── lib/              # data.ts（站點設定）、搜尋、SEO、CMS 等邏輯
-│   ├── layouts/          # BaseLayout：頂欄、導覽、頁尾、全站腳本
-│   ├── components/       # 搜尋、目錄、圖示等元件
-│   ├── pages/            # 路由；api/ 為 Worker 端點，admin/ 為後台
-│   └── styles/           # tokens.css 與各區塊樣式
-├── public/               # 靜態資源與瀏覽器端腳本（public/scripts）
-├── migrations/           # D1 資料庫 migration
-├── scripts/              # 內容驗證、抓取內容、OG 檢查等腳本
-├── tests/                # 單元測試與測試用固定資料
-├── docs/                 # 架構、CMS、爬蟲政策等文件
-└── wrangler.jsonc        # Cloudflare Workers 設定
+│   ├── content/          # Your writing: blog, novel, dictionary, world
+│   ├── content.config.ts # Frontmatter schema per collection (single source of truth)
+│   ├── site.config.ts    # Typed loader for site.config.json
+│   ├── i18n/             # ui.json (UI copy) and ui.ts (typed accessor)
+│   ├── lib/              # Search, SEO, CMS, time and auth logic
+│   ├── layouts/          # BaseLayout: topbar, nav, footer, global scripts
+│   ├── components/       # Search, TOC, reading progress, icons
+│   ├── pages/            # Routes; api/ are Worker endpoints, admin/ is the CMS
+│   └── styles/           # tokens.css and per-area styles
+├── public/               # Static assets and browser scripts (public/scripts)
+├── migrations/           # D1 database migrations
+├── scripts/              # Content validation, content fetching, OG checks
+├── tests/                # Unit tests and fixtures
+├── docs/                 # Architecture, CMS, crawler policy (English)
+├── site.config.json      # Site identity, nav, feeds, licence, branding paths
+└── wrangler.jsonc        # Cloudflare Workers configuration
 ```
 
-### 時區與語言
+### Timezone and language
 
-- 介面語言為繁體中文與英文，文案都在 `src/i18n/ui.ts`。要新增語言，需要同步調整 `src/lib/i18n.ts` 與 `public/scripts/site-shell.js`。
-- 全站時間固定以**香港標準時間（UTC+8）**顯示，實作在 [`src/lib/time.ts`](src/lib/time.ts)，背景說明見 [HKO-TIME.md](HKO-TIME.md)。需要其他時區請修改該檔案。
+- The UI ships in Traditional Chinese and English, and every string is in `src/i18n/ui.json` (read through `src/i18n/ui.ts`). Adding a language also requires changes in `src/lib/i18n.ts` and `public/scripts/site-shell.js`.
+- All site times are displayed in **Hong Kong Time (UTC+8)**, implemented in [`src/lib/time.ts`](src/lib/time.ts); the background is explained in [docs/TIMEZONE.md](docs/TIMEZONE.md). Edit that file for another timezone.
 
 > [!WARNING]
-> 範本內附的私隱政策與使用條款是依**香港**法律寫成的示範文本，內含 `contact@example.com`。上線前請換成你自己的內容，並依你所在地區的法規審視。
+> The privacy policy and terms bundled with the template are sample texts written under **Hong Kong** law and contain `contact@example.com`. Replace them with your own content before going live, and review them against the regulations where you are.
 >
-> 頁尾預設的內容授權為 CC BY-NC-ND 4.0，也請依你的意願修改（`license_prefix`、`license_suffix` 與 `BaseLayout.astro`）。
+> The default content licence in the footer is CC BY-NC-ND 4.0; change it to what you want (`license_prefix`, `license_suffix` and `BaseLayout.astro`).
 
-## ⚙️ 文章 Frontmatter
+## ⚙️ Post Frontmatter
 
-所有文章放在 `src/content/<集合>/` 底下，**檔名就是網址**：`src/content/blog/hello-world.md` 會成為 `/posts/blog/hello-world`。建議使用小寫英文與連字號。
+All posts live under `src/content/<collection>/`, and **the file name is the URL**: `src/content/blog/hello-world.md` becomes `/posts/blog/hello-world`. Lowercase English with hyphens is recommended.
 
-隨筆（`blog`）：
-
-```yaml
----
-title: 文章標題 # 必填
-date: 2026-11-01 # 必填
-description: 一句話摘要 # 必填，用於列表、RSS 與 SEO
-type: essay # 選填，預設 essay
-category: 公告 # 選填，預設 General
-tags: [FluentFolio, 入門] # 選填
-author: Your Name # 選填
-updatedDate: 2026-11-10 # 選填
-featured: false # 選填，是否置頂推薦
-draft: false # 選填，true 時不會公開
-copyProtect: true # 選填，覆寫此篇的複製防護
----
-```
-
-連載小說（`novel`）：
+Essay (`blog`):
 
 ```yaml
 ---
-title: 第一章　開端 # 必填
-chapter: 1 # 必填，正整數
-date: 2026-11-04 # 必填
-volume: 第一卷 # 選填，分卷名稱
-order: 1 # 選填，決定閱讀順序
-relatedLore: [luma] # 選填，相關的詞典條目 id
+title: Post title # required
+date: 2026-11-01 # required
+description: One-line summary # required, used in lists, RSS and SEO
+type: essay # optional, defaults to essay
+category: Announcements # optional, defaults to General
+tags: [FluentFolio, Intro] # optional
+author: Your Name # optional
+updatedDate: 2026-11-10 # optional
+featured: false # optional, pin as recommended
+draft: false # optional, true keeps it private
+copyProtect: true # optional, overrides copy protection for this post
 ---
 ```
 
-詞典（`dictionary`）與世界觀（`world`）：
+Serialized fiction (`novel`):
 
 ```yaml
 ---
-word: luma # 詞典必填；世界觀改用 title
-partOfSpeech: 名詞 # 詞典必填
-definition: 光；亮度。 # 詞典必填；世界觀改用 description
-ipa: /ˈlu.ma/ # 選填
-relatedWords: [sora] # 選填，其他詞條的 id（世界觀用 relatedEntries）
+title: Chapter 1　The Beginning # required
+chapter: 1 # required, positive integer
+date: 2026-11-04 # required
+volume: Volume 1 # optional, volume name
+order: 1 # optional, decides the reading order
+relatedLore: [luma] # optional, related dictionary entry ids
 ---
 ```
 
-所有欄位以 [`src/content.config.ts`](src/content.config.ts) 為準。寫完後執行 `npm run validate:md` 檢查欄位、圖片、內部連結與關聯。
+Dictionary (`dictionary`) and world (`world`):
 
-## 🧩 Markdown 擴展
+```yaml
+---
+word: luma # required for dictionary; world uses title
+partOfSpeech: noun # required for dictionary
+definition: Light; brightness. # required for dictionary; world uses description
+ipa: /ˈlu.ma/ # optional
+relatedWords: [sora] # optional, ids of other entries (world uses relatedEntries)
+---
+```
 
-- **詞典連結**：正文寫 `[[luma]]`，如果 `dictionary` 裡有 `luma.md`，就會變成可懸浮顯示定義的連結；找不到時退化成一般的醒目文字。
-- **複製防護與浮水印**（選用）：見 [docs/COPY-PROTECTION.md](docs/COPY-PROTECTION.md)。
-- **爬蟲分級**（選用）：見 [docs/CRAWLER-POLICY.md](docs/CRAWLER-POLICY.md)。
+[`src/content.config.ts`](src/content.config.ts) is authoritative for every field. After writing, run `npm run validate:md` to check fields, images, internal links and references.
 
-## 🔒 選用：把文章放在私有倉庫
+## 🧩 Markdown Extensions
 
-預設情況下文章與程式碼在同一個倉庫。如果你想讓程式碼公開或交給別人協作，同時把未發佈的文章留在私有倉庫，可以改用「私有內容模式」：建置時由 `scripts/fetch-content.mjs` 以唯讀 token 取得內容，後台則 commit 到內容倉庫，內容更新時透過 Deploy Hook 自動重新部署。完整步驟與內容倉庫範本見 [docs/PRIVATE-CONTENT-REPO.md](docs/PRIVATE-CONTENT-REPO.md)。
+- **Dictionary links**: write `[[luma]]` in the body; if `dictionary` contains `luma.md` it becomes a link with a hover definition, and when there is no match it degrades to plain emphasis.
+- **Copy protection and watermark** (optional): see [docs/COPY-PROTECTION.md](docs/COPY-PROTECTION.md).
+- **Crawler tiers** (optional): see [docs/CRAWLER-POLICY.md](docs/CRAWLER-POLICY.md).
 
-## 🧞 指令
+## 🔒 Optional: Keep Content in a Private Repository
 
-| 指令                                      | 作用                                         |
-| ----------------------------------------- | -------------------------------------------- |
-| `npm run dev`                             | 啟動本機開發伺服器                           |
-| `npm run build`                           | 建置正式版本（建置前會執行 `fetch:content`） |
-| `npm run preview`                         | 本機預覽建置結果                             |
-| `npm run check`                           | `astro check`：型別與診斷                    |
-| `npm run check:public`                    | 檢查 `public/scripts` 的瀏覽器端腳本型別     |
-| `npm run check:inline-scripts`            | 確認建置結果沒有可執行的行內腳本（CSP 要求） |
-| `npm run lint`                            | 檢查本倉庫文件的 Markdown 格式               |
-| `npm run validate:md`                     | 驗證文章 frontmatter、圖片、連結與關聯       |
-| `npm test`                                | 單元測試                                     |
-| `npm run format` / `npm run format:check` | 以 Prettier 格式化／檢查格式                 |
-| `npm run deploy`                          | 建置並執行 `wrangler deploy`（手動部署用）   |
-| `npm run fetch:content`                   | 私有內容模式：把內容倉庫抓進 `src/content`   |
+By default the posts and the code share one repository. If you want to publish the code or hand it to collaborators while unpublished writing stays private, switch to private content mode: at build time `scripts/fetch-content.mjs` fetches the content with a read-only token, the admin commits to the content repository, and content updates redeploy through a Deploy Hook. The content repository is also the site's private overlay — `site.config.json`, `i18n/ui.json` and `assets/brand/*` are copied over the theme defaults before the build. Full steps and the content repository template: [docs/PRIVATE-CONTENT-REPO.md](docs/PRIVATE-CONTENT-REPO.md).
 
-## 📚 文件
+## 🧞 Commands
 
-- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)：系統地圖
-- [AGENTS.md](AGENTS.md)：內容與介面慣例、已知陷阱
-- [ADMIN-CMS-SETUP.md](ADMIN-CMS-SETUP.md)：後台 CMS 設定
-- [docs/ADMIN-AUTH-ARCHITECTURE.md](docs/ADMIN-AUTH-ARCHITECTURE.md)：後台登入架構
-- [docs/CMS-CONTENT-EDITOR.md](docs/CMS-CONTENT-EDITOR.md)：編輯器功能
-- [docs/CMS-HTTP-CONTRACT.md](docs/CMS-HTTP-CONTRACT.md)：後台 API 契約
+| Command                                   | Action                                                  |
+| ----------------------------------------- | ------------------------------------------------------- |
+| `npm run dev`                             | Start the local development server                      |
+| `npm run build`                           | Production build (runs `fetch:content` first)           |
+| `npm run preview`                         | Preview the build result locally                        |
+| `npm run check`                           | `astro check`: types and diagnostics                    |
+| `npm run check:public`                    | Type-check the browser scripts in `public/scripts`      |
+| `npm run check:inline-scripts`            | Ensure the build has no executable inline scripts (CSP) |
+| `npm run lint`                            | Lint this repository's Markdown                         |
+| `npm run validate:md`                     | Validate post frontmatter, images, links and references |
+| `npm test`                                | Unit tests                                              |
+| `npm run format` / `npm run format:check` | Format / check formatting with Prettier                 |
+| `npm run deploy`                          | Build and run `wrangler deploy` (manual deploys)        |
+| `npm run fetch:content`                   | Private content mode: fetch the content repository      |
 
-## 🙏 致謝
+## 📚 Docs
 
-- [Astro](https://astro.build) 與 [Cloudflare Workers](https://workers.cloudflare.com)
-- [Fluent UI System Icons](https://github.com/microsoft/fluentui-system-icons)（MIT，已內附於 `public/icons/fluent/`）與 Microsoft Fluent 設計語言
-- [Noto Sans TC](https://fonts.google.com/noto/specimen/Noto+Sans+TC)（SIL Open Font License 1.1，用於 OG 圖片）
-- [swup](https://swup.js.org)、[Fuse.js](https://www.fusejs.io)、[pinyin-pro](https://github.com/zh-lx/pinyin-pro)、[to-jyutping](https://github.com/CanCLID/to-jyutping)、[SimpleWebAuthn](https://simplewebauthn.dev)、[DOMPurify](https://github.com/cure53/DOMPurify)、[marked](https://marked.js.org)、[Lanyard](https://github.com/Phineas/lanyard)
-- README 的章節結構參考自 [Firefly](https://github.com/CuteLeaf/Firefly)
+All documentation under `docs/` is written in English.
 
-## 📝 授權
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): system map
+- [AGENTS.md](AGENTS.md): content and UI conventions, known pitfalls
+- [ADMIN-CMS-SETUP.md](ADMIN-CMS-SETUP.md): admin CMS setup
+- [docs/ADMIN-AUTH-ARCHITECTURE.md](docs/ADMIN-AUTH-ARCHITECTURE.md): admin login architecture
+- [docs/CMS-CONTENT-EDITOR.md](docs/CMS-CONTENT-EDITOR.md): editor features
+- [docs/CMS-HTTP-CONTRACT.md](docs/CMS-HTTP-CONTRACT.md): admin API contract
 
-程式碼以 [MIT License](LICENSE) 授權。範例文章與你自己撰寫的內容，版權與授權由你自行決定。
+## 🙏 Acknowledgements
+
+- [Astro](https://astro.build) and [Cloudflare Workers](https://workers.cloudflare.com)
+- [Fluent UI System Icons](https://github.com/microsoft/fluentui-system-icons) (MIT, bundled in `public/icons/fluent/`) and the Microsoft Fluent design language
+- [Noto Sans TC](https://fonts.google.com/noto/specimen/Noto+Sans+TC) (SIL Open Font License 1.1, used for OG images)
+- [swup](https://swup.js.org), [Fuse.js](https://www.fusejs.io), [pinyin-pro](https://github.com/zh-lx/pinyin-pro), [to-jyutping](https://github.com/CanCLID/to-jyutping), [SimpleWebAuthn](https://simplewebauthn.dev), [DOMPurify](https://github.com/cure53/DOMPurify), [marked](https://marked.js.org), [Lanyard](https://github.com/Phineas/lanyard)
+- The README section structure is modelled on [Firefly](https://github.com/CuteLeaf/Firefly)
+
+## 📝 License
+
+The code is released under the [MIT License](LICENSE). Copyright and licensing of the sample posts and of your own writing are yours to decide.

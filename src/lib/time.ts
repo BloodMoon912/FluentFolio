@@ -1,9 +1,8 @@
 /**
- * Hong Kong Standard Time (HKST) display utilities.
+ * Display-time formatters built around one configurable IANA time zone.
  *
- * The site uses UTC instants from the Cloudflare runtime and formats them
- * explicitly as Hong Kong Standard Time (UTC+08:00). The application does
- * not query stdtime.gov.hk directly.
+ * The runtime supplies UTC instants; these helpers only format them for display.
+ * Change the zone in the constants below and see docs/TIMEZONE.md.
  */
 export const HONG_KONG_TIME_ZONE = 'Asia/Hong_Kong';
 export const HONG_KONG_UTC_OFFSET = '+08:00';

@@ -16,7 +16,6 @@ Astro 7 SSR site (`output: 'server'`, `@astrojs/cloudflare` adapter) deployed to
 - `npm run preview` — `astro preview` (server-renders the built output locally).
 - `npm run deploy` — build + `wrangler deploy`. Manual local deploys only; `main` auto-deploys via Workers Builds.
 - `npm run cf-typegen` — `wrangler types`. Not wired into compilation; `Env` is hand-declared in `src/env.d.ts` (see gotcha below).
-- `npm run check:hko-time` — `scripts/check-hko-ntp.mjs`, a **Node-only** NTP query to `stdtime.gov.hk` (UDP). Workers cannot open UDP/NTP sockets; never call this from worker code.
 
 ## Type checking
 
