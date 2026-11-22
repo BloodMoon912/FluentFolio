@@ -6,7 +6,7 @@
 
 **一套 Fluent 風格的個人網站模板：網誌、連載小說、詞典、世界觀、即時狀態與網站狀態，全部集中在一個地方。**
 
-[English](#english) · [繁體中文](#zh-hant)
+English first · 中文版在下方
 
 ![Node.js](https://img.shields.io/badge/Node.js-%E2%89%A522.23.4-5FA04E?logo=nodedotjs&logoColor=white)
 ![Astro](https://img.shields.io/badge/Astro-7-BC52EE?logo=astro&logoColor=white)
@@ -15,8 +15,6 @@
 ![License](https://img.shields.io/badge/License-MIT-green)
 
 </div>
-
-<a id="english"></a>
 
 ## English
 
@@ -294,8 +292,6 @@ All documentation under `docs/` is written in English.
 The code is released under the [MIT License](LICENSE). Copyright and licensing of the sample posts and of your own writing are yours to decide.
 
 ---
-
-<a id="zh-hant"></a>
 
 ## 繁體中文
 
