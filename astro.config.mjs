@@ -53,7 +53,7 @@ export default defineConfig({
     // output is deployed as plain static assets either way.
     prerenderEnvironment: 'node',
   }),
-  site: 'https://www.example.com',
+  site: 'https://fluentfolio.bloodmoon912.de5.net',
   // Astro 7's default Markdown processor is Sätteri, so `[[word]]` is turned
   // into a <span class="lore-word" data-lore-word data-tooltip> by a Sätteri
   // mdast plugin (not a remark plugin). Definitions are read from the
