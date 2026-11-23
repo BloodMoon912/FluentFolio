@@ -95,6 +95,8 @@
   margin-top: 22px;
   margin-bottom: 22px;
   padding-top: 14px;
+  /* Breathing room so the edge date labels are never clipped by the card. */
+  padding-inline: 4px;
   border-top: 1px solid var(--line);
 }
 .bar-wrap {
