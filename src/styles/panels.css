@@ -100,6 +100,9 @@
 .bar-wrap {
   height: 100%;
   display: grid;
+  /* One fixed column: without it the auto column is sized by the widest date
+     label, so a labelled bar stretches past its track and overlaps the gap. */
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: 1fr auto;
   gap: 7px;
   min-width: 0;
@@ -113,12 +116,16 @@
   transition: height 0.35s ease;
 }
 .bar.is-empty {
-  min-height: 2px;
-  height: 2px !important;
-  border-radius: 1px;
+  width: 3px;
+  min-height: 3px;
+  height: 3px !important;
+  justify-self: center;
+  border-radius: 999px;
   opacity: 0.45;
 }
 .bar-wrap span {
+  grid-column: 1;
+  justify-self: center;
   white-space: nowrap;
   /* Fixed row height so bars without a date label share the baseline of those with one. */
   height: 12px;
@@ -126,6 +133,13 @@
   font-size: 9px;
   color: var(--subtle);
   text-align: center;
+}
+/* Keep the first and last date inside the card instead of overhanging it. */
+.bar-wrap:first-child span {
+  justify-self: start;
+}
+.bar-wrap:last-child span {
+  justify-self: end;
 }
 .top-paths {
   margin-top: 20px;
